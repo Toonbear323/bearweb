@@ -300,6 +300,15 @@ def flowerpot_be(x, y, z, plant, **states):
         "name": an.StringTag("minecraft:" + name), "states": stc, "version": an.IntTag(BLOCK_VERSION)}))
 
 
+def chiseled_bookshelf_be(x, y, z, mask):
+    """Books live in the block entity; without it the game empties the shelf (books_stored -> 0)."""
+    def item(name):
+        return nbt_compound({"Count": an.ByteTag(1 if name else 0), "Damage": an.ShortTag(0),
+                             "Name": an.StringTag(name), "WasPickedUp": an.ByteTag(0)})
+    items = an.ListTag([item("minecraft:book" if mask >> s & 1 else "") for s in range(6)])
+    return simple_be("ChiseledBookshelf", x, y, z, Items=items, LastInteractedSlot=an.IntTag(0))
+
+
 def banner_be(x, y, z, base, patterns=()):
     """base/pattern colours use Bedrock banner colour ids (0=black ... 15=white)."""
     pl = an.ListTag([nbt_compound({"Color": an.IntTag(c), "Pattern": an.StringTag(p)}) for p, c in patterns])
@@ -390,6 +399,24 @@ class Area:
             if b != 0 and (htab is None or htab[b] >= 2):
                 return i + self.y0
         return None
+
+    BE_BLOCK = {"ChiseledBookshelf": "chiseled_bookshelf", "Bed": "bed", "FlowerPot": "flower_pot",
+                "Campfire": "campfire", "BrewingStand": "brewing_stand", "Bell": "bell", "Cauldron": "cauldron",
+                "EnchantTable": "enchanting_table", "Chest": "chest"}
+
+    def prune_be(self):
+        """Drop block entities whose block was replaced after they were added."""
+        dropped = 0
+        for key in list(self.be):
+            kind = self.be[key]["id"].py_str
+            x, y, z = key
+            name = PAL.names[self.get(x, y, z)]
+            want = self.BE_BLOCK.get(kind)
+            ok = (name == want) if want else (("sign" in name) if kind in ("Sign", "HangingSign") else True)
+            if not ok:
+                del self.be[key]
+                dropped += 1
+        return dropped
 
     def add_be(self, nbt):
         x, y, z = int(nbt["x"].py_int), int(nbt["y"].py_int), int(nbt["z"].py_int)

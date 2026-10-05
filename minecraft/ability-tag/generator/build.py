@@ -19,6 +19,8 @@ from gen_forest import Forest
 from gen_volcano import Volcano
 from gen_paradise import Paradise
 from gen_factory import Factory
+from gen_skeld import Skeld
+from gen_library import Library
 import trapcheck
 import render
 import pack
@@ -40,6 +42,8 @@ def build_all():
         "volcano": Volcano(0, 1024),
         "paradise": Paradise(-1024, 0),
         "factory": Factory(0, -1024),
+        "skeld": Skeld(1024, -1024),
+        "library": Library(-1024, 1024),
     }
     for k, m in maps.items():
         m.build()
@@ -65,21 +69,25 @@ def verify(lobby, maps):
     return ok
 
 
+ICON_BOX = {"skeld": (100, 58, 66, 84), "library": (80, 58, 72, 112)}
+
+
 def world_icon(path, lobby, maps):
     tiles = []
-    for k in ("forest", "volcano", "paradise", "factory"):
+    for k in ("forest", "volcano", "paradise", "factory", "skeld", "library"):
         m = maps[k]
+        hx, y1, hz, y2 = ICON_BOX.get(k, (92, 44, 92, 140))
         im = render.iso(m.a, os.path.join(tempfile.gettempdir(), "icon_%s.png" % k),
-                        box=(m.cx - 92, 44, m.cz - 92, m.cx + 92, 140, m.cz + 92), s=1)
+                        box=(m.cx - hx, y1, m.cz - hz, m.cx + hx, y2, m.cz + hz), s=1)
         tiles.append(im)
     W, H = 960, 540
     out = Image.new("RGB", (W, H), (18, 14, 30))
-    tw, th = W // 2, H // 2
+    tw, th = W // 3, H // 2
     for i, im in enumerate(tiles):
         im = im.copy()
         im.thumbnail((tw, th))
-        x = (i % 2) * tw + (tw - im.width) // 2
-        y = (i // 2) * th + (th - im.height) // 2
+        x = (i % 3) * tw + (tw - im.width) // 2
+        y = (i // 3) * th + (th - im.height) // 2
         out.paste(im, (x, y))
     d = ImageDraw.Draw(out)
     font = None

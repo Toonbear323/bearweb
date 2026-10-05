@@ -20,7 +20,7 @@ SPAWN = (0, P, 41)
 NB_Z = (-47, -31)      # north (stage) band
 WING_Z = (-30, 47)
 STALL_Z = [-21, -3, 15, 33]
-GATE_Z = [-21, -3, 15, 33]
+GATE_Z = [-24, -11, 2, 15, 28, 41]     # six map gates, 13 apart
 PILLARS_Z = [-29, -20, -11, -2, 7, 16, 25, 34, 43]
 FOUNTAIN = (0, 6)
 DOME_R = 20
@@ -703,6 +703,8 @@ class Lobby:
             ("volcano", "§l§c2. 화산", "§f용암이 흐르는 화산지대"),
             ("paradise", "§l§b3. 파라다이스", "§f에메랄드빛 낙원 섬"),
             ("factory", "§l§74. 공장", "§f거대한 산업 단지"),
+            ("skeld", "§l§c5. 더 스켈드", "§f어몽어스 우주선"),
+            ("library", "§l§66. 대도서관", "§f돔 원형홀 도서관"),
         ]
         for (key, title, sub), zc in zip(maps, GATE_Z):
             self.diorama(key, zc)
@@ -752,7 +754,7 @@ class Lobby:
             leaf_blob(a, 28, P + 4.5, z, 2.4, leaves_of("cherry"), self.rng, flat=0.7)
         # sign board in the gallery
         a.set(31, P, 41, B("dark_oak_planks"))
-        standing_sign(a, 31, P + 1, 41, 8, "§l§b맵 갤러리\n§r§f게임 맵 4곳을\n§f미리 구경하세요", kind="dark_oak_standing_sign")
+        standing_sign(a, 31, P + 1, 41, 8, "§l§b맵 갤러리\n§r§f게임 맵 6곳을\n§f미리 구경하세요", kind="dark_oak_standing_sign")
 
     def gate(self, key, zc, title, sub):
         a = self.a
@@ -761,6 +763,8 @@ class Lobby:
             "volcano": (B("polished_blackstone_bricks"), B("magma"), B("red_nether_brick")),
             "paradise": (B("prismarine_bricks"), B("smooth_sandstone"), B("sea_lantern")),
             "factory": (B("iron_block"), B("polished_deepslate"), B("copper_block")),
+            "skeld": (B("light_gray_concrete"), B("black_concrete"), B("red_concrete")),
+            "library": (B("dark_oak_planks"), B("bookshelf"), B("gold_block")),
         }
         main, accent, trim = styles[key]
         x = 57
@@ -782,16 +786,19 @@ class Lobby:
             a.set(x, 72, zc + dz, main)
         for dz in (-3, 3):
             st_name = {"forest": "mossy_stone_brick_stairs", "volcano": "polished_blackstone_brick_stairs",
-                       "paradise": "prismarine_bricks_stairs", "factory": "polished_deepslate_stairs"}[key]
+                       "paradise": "prismarine_bricks_stairs", "factory": "polished_deepslate_stairs",
+                       "skeld": "polished_andesite_stairs", "library": "dark_oak_stairs"}[key]
             a.set(x, 72, zc + dz, stair(st_name, "south" if dz < 0 else "north", upside=True))
         # signs
         a.set(x, P + 3, zc - 5, main)
         wall_sign(a, 56, P + 3, zc - 5, 4, "%s\n%s" % (title, sub), kind="dark_oak_wall_sign")
         wall_sign(a, 56, P + 3, zc + 5, 4, "%s\n§7(맵 미리보기)" % title, kind="dark_oak_wall_sign")
         # floor lights in front
+        glow = {"paradise": B("sea_lantern"), "volcano": B("ochre_froglight", axis="y"),
+                "forest": B("verdant_froglight", axis="y"), "factory": B("pearlescent_froglight", axis="y"),
+                "skeld": B("sea_lantern"), "library": B("ochre_froglight", axis="y")}[key]
         for dz in (-3, 0, 3):
-            a.set(56, FY, zc + dz, B("sea_lantern") if key == "paradise" else B("ochre_froglight", axis="y") if key == "volcano"
-                  else B("verdant_froglight", axis="y") if key == "forest" else B("pearlescent_froglight", axis="y"))
+            a.set(56, FY, zc + dz, glow)
 
     def diorama(self, key, zc):
         a = self.a
@@ -802,9 +809,10 @@ class Lobby:
         a.fill(x1, P, z1, x2, 73, z2, AIR)
         # sky-ish back wall and ceiling light
         sky = {"forest": B("light_blue_concrete"), "volcano": B("orange_terracotta"),
-               "paradise": B("light_blue_concrete"), "factory": B("light_gray_concrete")}[key]
+               "paradise": B("light_blue_concrete"), "factory": B("light_gray_concrete"),
+               "skeld": B("black_concrete"), "library": B("dark_oak_planks")}[key]
         a.fill(71, P, z1, 71, 73, z2, sky)
-        a.fill(x1, 74, z1, x2, 74, z2, B("glowstone") if key != "factory" else B("sea_lantern"))
+        a.fill(x1, 74, z1, x2, 74, z2, B("glowstone") if key not in ("factory", "skeld") else B("sea_lantern"))
         a.fill(x1, 73, z1, x2, 73, z2, AIR)
         if key == "forest":
             a.fill(x1, FY, z1, x2, FY, z2, B("grass_block"))
@@ -873,6 +881,59 @@ class Lobby:
                 a.set(x, P, z, B(c))
             a.set(66, P, zc, B("iron_block")); a.set(66, P + 1, zc, B("iron_block"))
             a.set(66, P + 2, zc, B("copper_bulb", lit=1))
+        elif key == "skeld":
+            # deep space with stars, a little spaceship and a crewmate
+            a.fill(x1, FY, z1, x2, FY, z2, B("black_concrete"))
+            for _ in range(26):
+                x, y, z = 71, rng.randint(P, 72), rng.randint(z1, z2)
+                a.set(x, y, z, B("glowstone") if rng.random() < 0.5 else B("sea_lantern"))
+            for _ in range(10):
+                a.set(rng.randint(x1, x2), FY, rng.randint(z1, z2), B("sea_lantern"))
+            for x in range(61, 70):
+                for z in range(zc - 3, zc + 4):
+                    for y in range(P + 1, P + 4):
+                        if ((x - 65.5) / 4.6) ** 2 + ((z - zc) / 3.4) ** 2 + ((y - (P + 2)) / 1.6) ** 2 <= 1:
+                            a.set(x, y, z, B("light_gray_concrete"))
+            for z in (zc - 1, zc + 1):
+                a.set(60, P + 2, z, B("orange_stained_glass"))
+                a.set(61, P + 2, z, B("ochre_froglight", axis="x"))
+            a.set(69, P + 2, zc, B("light_blue_stained_glass"))
+            a.set(66, P + 4, zc, B("red_concrete"))
+            a.set(66, P + 5, zc, B("red_concrete"))
+            a.set(65, P + 5, zc, B("light_blue_stained_glass"))
+            a.set(67, P + 4, zc, B("red_concrete"))
+            for x in range(62, 70):
+                a.set(x, P, zc, B("iron_bars") if x in (65, 66) else AIR)
+        elif key == "library":
+            # a little library: shelves, a domed reading room and a globe
+            for x in range(x1, x2 + 1):
+                for z in range(z1, z2 + 1):
+                    a.set(x, FY, z, B("dark_oak_planks") if (x + z) % 2 else B("spruce_planks"))
+            for x in range(x1, x2 + 1, 2):
+                for z in (z1, z2):
+                    for y in range(P, P + 3):
+                        a.set(x, y, z, B("bookshelf"))
+            for x in range(61, 70):
+                for z in range(zc - 4, zc + 5):
+                    d = math.sqrt((x - 65) ** 2 + (z - zc) ** 2)
+                    if 3.5 <= d < 4.5:
+                        for y in range(P, P + 3):
+                            a.set(x, y, z, B("bookshelf") if (x + z) % 3 else B("stripped_dark_oak_log", axis="y"))
+            for x in range(60, 71):
+                for z in range(zc - 5, zc + 6):
+                    for y in range(P + 3, P + 9):
+                        d = math.sqrt((x - 65) ** 2 + (z - zc) ** 2 + (y - (P + 3)) ** 2)
+                        if 4.0 <= d < 5.0:
+                            a.set(x, y, z, B("waxed_oxidized_cut_copper") if d > 4.5 else B("quartz_bricks"))
+            for x in range(63, 68):
+                for z in range(zc - 2, zc + 3):
+                    if (x - 65) ** 2 + (z - zc) ** 2 <= 4:
+                        a.set(x, P + 1, z, B("blue_concrete") if (x + z) % 3 else B("lime_concrete"))
+            a.set(65, P, zc, B("gold_block"))
+            a.set(65, P + 2, zc, B("green_concrete"))
+            for z in (zc - 4, zc + 4):
+                a.set(60, P, z, B("dark_oak_fence"))
+                a.set(60, P + 1, z, B("lantern"))
 
     # ------------------------------------------------------------------
     def foyer(self):

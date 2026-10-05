@@ -11,11 +11,13 @@ SCRIPT_API = "1.11.0"      # @minecraft/server stable version (Minecraft 1.21.0+
 
 # TP items: (key, vanilla item, display name, title, hotbar slot)
 TP_ITEMS = [
-    ("lobby", "minecraft:nether_star", "§l§e로비 (스폰)으로 이동", "§l§e로비", 4),
-    ("forest", "minecraft:emerald", "§l§a1. 숲으로 이동", "§l§a숲", 5),
-    ("volcano", "minecraft:blaze_powder", "§l§c2. 화산으로 이동", "§l§c화산", 6),
-    ("paradise", "minecraft:heart_of_the_sea", "§l§b3. 파라다이스로 이동", "§l§b파라다이스", 7),
-    ("factory", "minecraft:iron_ingot", "§l§74. 공장으로 이동", "§l§7공장", 8),
+    ("lobby", "minecraft:nether_star", "§l§e로비 (스폰)으로 이동", "§l§e로비", 2),
+    ("forest", "minecraft:emerald", "§l§a1. 숲으로 이동", "§l§a숲", 3),
+    ("volcano", "minecraft:blaze_powder", "§l§c2. 화산으로 이동", "§l§c화산", 4),
+    ("paradise", "minecraft:heart_of_the_sea", "§l§b3. 파라다이스로 이동", "§l§b파라다이스", 5),
+    ("factory", "minecraft:iron_ingot", "§l§74. 공장으로 이동", "§l§7공장", 6),
+    ("skeld", "minecraft:firework_star", "§l§c5. 더 스켈드로 이동", "§l§c더 스켈드", 7),
+    ("library", "minecraft:book", "§l§66. 대도서관으로 이동", "§l§6대도서관", 8),
 ]
 PACK_NAME = "ability_tag_bp"
 VERSION = [1, 0, 0]
@@ -209,6 +211,10 @@ def write_pack(root, lobby, maps, spawn):
     fn("items/auto_on", ["# hand out TP items automatically whenever a player spawns (default)",
                          "scriptevent at:tpitems auto_on"])
     fn("items/auto_off", ["scriptevent at:tpitems auto_off"])
+    if "skeld" in maps:
+        os.makedirs(os.path.join(fdir, "skeld"), exist_ok=True)
+        fn("skeld/meeting", ["# emergency meeting in The Skeld (same as pressing the button in the cafeteria)",
+                             "scriptevent at:skeld meeting"])
 
     # ---- teleports ------------------------------------------------------------------------
     fn("tp/lobby", ["tp @s %d %d %d facing %d %d %d" % (sx, sy, sz, sx, sy, sz - 20)])
@@ -232,7 +238,8 @@ def tp_destinations(maps, spawn):
             m = maps[key]
             x, y, z = m.spawns[0]
             pos = (x + 0.5, y, z + 0.5)
-            face = (m.cx + 0.5, y + 1.6, m.cz + 0.5)
+            fx, fz = getattr(m, "face", (m.cx, m.cz))
+            face = (fx + 0.5, y + 1.6, fz + 0.5)
             where = title.replace("§l", "")[2:] + " 맵 스폰"
         dests.append({
             "key": key, "item": item, "name": name, "slot": slot,
@@ -249,5 +256,24 @@ def write_tp_script(root, maps, spawn):
     src = open(os.path.join(here, "tp_items.js"), encoding="utf8").read()
     dests = json.dumps(tp_destinations(maps, spawn), ensure_ascii=False, indent=2)
     os.makedirs(os.path.join(root, "scripts"), exist_ok=True)
+    head = ""
+    if "skeld" in maps:
+        write_skeld_script(root, maps["skeld"])
+        head = 'import "./skeld.js";\n'
     with open(os.path.join(root, "scripts", "main.js"), "w", encoding="utf8") as f:
-        f.write(src.replace("__DESTS__", dests))
+        f.write(head + src.replace("__DESTS__", dests))
+
+
+def write_skeld_script(root, sk):
+    here = os.path.dirname(os.path.abspath(__file__))
+    src = open(os.path.join(here, "skeld.js"), encoding="utf8").read()
+    vents = [{"group": v["group"], "name": v["name"], "x": v["x"], "y": v["y"], "z": v["z"]} for v in sk.vents]
+    bx, by, bz = sk.button
+    xs = [x for x, z in sk.foot_cells()]
+    zs = [z for x, z in sk.foot_cells()]
+    area = {"x1": min(xs), "z1": min(zs), "x2": max(xs), "z2": max(zs)}
+    src = (src.replace("__VENTS__", json.dumps(vents, ensure_ascii=False, indent=2))
+              .replace("__BUTTON__", json.dumps({"x": bx, "y": by, "z": bz}))
+              .replace("__AREA__", json.dumps(area)))
+    with open(os.path.join(root, "scripts", "skeld.js"), "w", encoding="utf8") as f:
+        f.write(src)

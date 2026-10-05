@@ -73,7 +73,7 @@ def floor_light_stats(area, x1, z1, x2, z2, ymin, ymax, mask_fn=None):
     return vals, pos, L
 
 
-def fill_dark(area, box, yrange, threshold=5, level=8, height=4, spacing=5, rounds=4, avoid_col=None):
+def fill_dark(area, box, yrange, threshold=5, level=8, height=4, spacing=5, rounds=4, avoid_col=None, skip=None):
     """Add invisible light blocks above dark standable spots (soft fill light)."""
     from mcw import B
     x1, z1, x2, z2 = box
@@ -92,6 +92,8 @@ def fill_dark(area, box, yrange, threshold=5, level=8, height=4, spacing=5, roun
             if key in taken:
                 continue
             if avoid_col is not None and (x, z) == avoid_col:
+                continue
+            if skip is not None and skip(x, z):
                 continue
             for hy in range(height, 0, -1):
                 if area.get(x, y + hy, z) == 0 and all(area.get(x, y + k, z) == 0 for k in range(1, hy)):

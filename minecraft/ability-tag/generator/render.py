@@ -151,7 +151,7 @@ def iso(area, path, box=None, s=2, cut_y=None, bg=(18, 16, 28)):
 
 
 def persp(area, path, cam, yaw, pitch, W=640, H=360, fov=75, max_steps=420, sky_strength=0.85,
-          block_light=None):
+          block_light=None, fog_col=(200, 140, 120), fog_dist=160.0):
     """Simple voxel ray caster. cam=(x,y,z) world coords (eye), yaw: 0 = looking +z (south), 90 = -x (west),
     180 = -z (north), 270 = +x (east); pitch: positive looks down."""
     col, vis = block_colors()
@@ -254,9 +254,9 @@ def persp(area, path, cam, yaw, pitch, W=640, H=360, fov=75, max_steps=420, sky_
         bl = np.zeros(len(h))
     bright = np.maximum(skyv * sky_strength, bl)
     bright = 0.12 + 0.88 * bright ** 1.15
-    fog = np.clip(t_hit[h] / 160.0, 0, 1)[:, None]
+    fog = np.clip(t_hit[h] / fog_dist, 0, 1)[:, None]
     shade = base * (face * bright)[:, None]
-    shade = shade * (1 - fog * 0.6) + np.array([200, 140, 120]) * fog * 0.6
+    shade = shade * (1 - fog * 0.6) + np.array(fog_col) * fog * 0.6
     img[h] = shade
     img *= tint
     out = np.clip(img.reshape(H, W, 3), 0, 255).astype(np.uint8)

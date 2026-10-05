@@ -58,6 +58,33 @@
 
 예: `execute as @a run function at/tp/volcano` 다음에 `execute as @a run function at/ability/apply`
 
+### 맵 이동 아이템 (우클릭하면 바로 TP)
+
+플레이어가 스폰할 때마다 빠진 이동 아이템을 핫바 5~9번 칸에 자동으로 채워줍니다.
+아이템을 들고 우클릭하면(모바일은 길게 누르기) 바로 순간이동합니다. 블록을 보고 눌러도 동작합니다.
+
+| 핫바 칸 | 아이템 | 이름 | 도착 위치 |
+|---|---|---|---|
+| 5 | 네더의 별 | 로비 (스폰)으로 이동 | 로비 스폰 `0 64 41` (무대를 바라봄) |
+| 6 | 에메랄드 | 1. 숲으로 이동 | `1035 67 0` (세계수를 바라봄) |
+| 7 | 블레이즈 가루 | 2. 화산으로 이동 | `46 66 1018` (화산을 바라봄) |
+| 8 | 바다의 심장 | 3. 파라다이스로 이동 | `-1024 69 -46` (석호를 바라봄) |
+| 9 | 철 주괴 | 4. 공장으로 이동 | `0 65 -1016` (창고 쪽을 바라봄) |
+
+- 이름이 붙은 아이템만 반응합니다. 같은 종류라도 이름이 없는 일반 아이템은 아무 일도 일어나지 않습니다.
+- 버리거나 상자에 넣을 수 없고(인벤토리 잠금), 죽어도 사라지지 않습니다. 연속 이동을 막는 1초 쿨타임이 있습니다.
+- 원하는 칸이 이미 차 있으면 비어 있는 다른 칸에 들어갑니다.
+
+| 함수 | 설명 |
+|---|---|
+| `function at/items/give` | 실행한 플레이어(@s)에게 빠진 이동 아이템 지급 (콘솔·커맨드 블록에서 실행하면 전원) |
+| `function at/items/clear` | 이동 아이템 회수 |
+| `function at/items/auto_off` / `auto_on` | 스폰할 때 자동 지급 끄기 / 켜기 (기본: 켜짐) |
+
+예: 게임 중에는 이동을 막고 싶다면 라운드 시작 때 `execute as @a run function at/items/clear`와
+`function at/items/auto_off`을, 끝난 뒤 `function at/items/auto_on`과 `execute as @a run function at/items/give`를 실행하면 됩니다.
+이 기능은 `@minecraft/server` 1.11.0 스크립트로 동작합니다. 실험적 기능을 켤 필요는 없습니다.
+
 ## 게임 맵 (로비에서 1024블록씩 떨어져 있음, 플레이 영역은 약 152×152)
 
 | 맵 | 중심 | 스폰 1 / 2 / 3 | 특징 | 경계 벽 |
@@ -103,7 +130,7 @@ python generator/build.py .        # -> ./AbilityTag.mcworld
 
 - `mcw.py`: LevelDB/청크/블록 팔레트 저장. 모든 블록 상태는 Bedrock 공식 블록 목록으로 검증합니다.
 - `gen_lobby.py`, `gen_forest.py`, `gen_volcano.py`, `gen_paradise.py`, `gen_factory.py`: 로비와 각 맵
-- `pack.py`: 행동 팩(NPC 소환, 상점 대화, 함수) · `abilities.py`: 능력 목록과 가격
+- `pack.py`: 행동 팩(NPC 소환, 상점 대화, 함수) · `tp_items.js`: 이동 아이템 스크립트 · `abilities.py`: 능력 목록과 가격
 - `trapcheck.py`: 갇힘 검사기 · `lighting.py`: 조명 시뮬레이션 · `render.py`: 미리보기 렌더러
 
 ## 미리보기

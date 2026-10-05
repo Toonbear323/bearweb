@@ -6,6 +6,17 @@ from abilities import ABILITIES, START_COINS
 
 PACK_UUID = "6f1d3c52-2a8e-4c41-9a35-6b7b1f0c4a11"
 MODULE_UUID = "a83e1f0e-5c6d-4f2b-8e77-0d9c2b1a5e22"
+SCRIPT_UUID = "c5b2e7d4-1f3a-4b6c-9d8e-7a2f4c6b1e33"
+SCRIPT_API = "1.11.0"      # @minecraft/server stable version (Minecraft 1.21.0+)
+
+# TP items: (key, vanilla item, display name, title, hotbar slot)
+TP_ITEMS = [
+    ("lobby", "minecraft:nether_star", "§l§e로비 (스폰)으로 이동", "§l§e로비", 4),
+    ("forest", "minecraft:emerald", "§l§a1. 숲으로 이동", "§l§a숲", 5),
+    ("volcano", "minecraft:blaze_powder", "§l§c2. 화산으로 이동", "§l§c화산", 6),
+    ("paradise", "minecraft:heart_of_the_sea", "§l§b3. 파라다이스로 이동", "§l§b파라다이스", 7),
+    ("factory", "minecraft:iron_ingot", "§l§74. 공장으로 이동", "§l§7공장", 8),
+]
 PACK_NAME = "ability_tag_bp"
 VERSION = [1, 0, 0]
 
@@ -43,7 +54,12 @@ def write_pack(root, lobby, maps, spawn):
             "version": VERSION,
             "min_engine_version": [1, 21, 60],
         },
-        "modules": [{"type": "data", "uuid": MODULE_UUID, "version": VERSION}],
+        "modules": [
+            {"type": "data", "uuid": MODULE_UUID, "version": VERSION},
+            {"type": "script", "language": "javascript", "uuid": SCRIPT_UUID, "version": VERSION,
+             "entry": "scripts/main.js"},
+        ],
+        "dependencies": [{"module_name": "@minecraft/server", "version": SCRIPT_API}],
     }
     json.dump(manifest, open(os.path.join(root, "manifest.json"), "w", encoding="utf8"), ensure_ascii=False, indent=2)
     json.dump({"values": ["at/tick"]}, open(os.path.join(root, "functions", "tick.json"), "w"), indent=2)
@@ -184,6 +200,16 @@ def write_pack(root, lobby, maps, spawn):
     for amt in (10, 50, 100):
         fn("coin/add%d" % amt, ["scoreboard players add @s coin %d" % amt])
 
+    # ---- TP items (right-click to teleport; handled by scripts/main.js) ---------------------
+    write_tp_script(root, maps, spawn)
+    os.makedirs(os.path.join(fdir, "items"), exist_ok=True)
+    fn("items/give", ["# give the missing TP items to @s (or everyone when run from the console)",
+                      "scriptevent at:tpitems give"])
+    fn("items/clear", ["scriptevent at:tpitems clear"])
+    fn("items/auto_on", ["# hand out TP items automatically whenever a player spawns (default)",
+                         "scriptevent at:tpitems auto_on"])
+    fn("items/auto_off", ["scriptevent at:tpitems auto_off"])
+
     # ---- teleports ------------------------------------------------------------------------
     fn("tp/lobby", ["tp @s %d %d %d facing %d %d %d" % (sx, sy, sz, sx, sy, sz - 20)])
     for key, m in maps.items():
@@ -192,3 +218,36 @@ def write_pack(root, lobby, maps, spawn):
         for i, (x, y, z) in enumerate(m.spawns):
             fn("tp/%s_%d" % (key, i + 1), ["tp @s %d %d %d" % (x, y, z)])
     return manifest
+
+
+def tp_destinations(maps, spawn):
+    sx, sy, sz = spawn
+    dests = []
+    for key, item, name, title, slot in TP_ITEMS:
+        if key == "lobby":
+            pos = (sx + 0.5, sy, sz + 0.5)
+            face = (sx + 0.5, sy + 1.6, sz - 20)
+            where = "로비 스폰"
+        else:
+            m = maps[key]
+            x, y, z = m.spawns[0]
+            pos = (x + 0.5, y, z + 0.5)
+            face = (m.cx + 0.5, y + 1.6, m.cz + 0.5)
+            where = title.replace("§l", "")[2:] + " 맵 스폰"
+        dests.append({
+            "key": key, "item": item, "name": name, "slot": slot,
+            "lore": ["§7우클릭하면 바로 이동합니다", "§8%s (%d, %d, %d)" % (where, pos[0], pos[1], pos[2])],
+            "pos": {"x": pos[0], "y": pos[1], "z": pos[2]},
+            "face": {"x": face[0], "y": face[1], "z": face[2]},
+            "title": title, "subtitle": "§f이동 완료!",
+        })
+    return dests
+
+
+def write_tp_script(root, maps, spawn):
+    here = os.path.dirname(os.path.abspath(__file__))
+    src = open(os.path.join(here, "tp_items.js"), encoding="utf8").read()
+    dests = json.dumps(tp_destinations(maps, spawn), ensure_ascii=False, indent=2)
+    os.makedirs(os.path.join(root, "scripts"), exist_ok=True)
+    with open(os.path.join(root, "scripts", "main.js"), "w", encoding="utf8") as f:
+        f.write(src.replace("__DESTS__", dests))

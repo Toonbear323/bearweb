@@ -1,0 +1,1243 @@
+{
+ "world_spawn": [
+  0,
+  65,
+  16
+ ],
+ "regions": {
+  "spawn": {
+   "name": "스폰 (뽑기장)",
+   "arrival": [
+    0,
+    65,
+    16
+   ],
+   "tp": "rpg/tp/spawn"
+  },
+  "farm": {
+   "name": "농장",
+   "arrival": [
+    -104,
+    65,
+    -14
+   ],
+   "tp": "rpg/tp/farm"
+  },
+  "cave": {
+   "name": "초급 던전: 동굴",
+   "arrival": [
+    30,
+    53,
+    82
+   ],
+   "tp": "rpg/tp/cave"
+  },
+  "village": {
+   "name": "점령된 마을",
+   "arrival": [
+    24,
+    67,
+    168
+   ],
+   "tp": "rpg/tp/village"
+  },
+  "hq": {
+   "name": "보스: 우민 본거지",
+   "arrival": [
+    -108,
+    66,
+    226
+   ],
+   "tp": "rpg/tp/hq"
+  },
+  "beach": {
+   "name": "해변",
+   "arrival": [
+    22,
+    66,
+    312
+   ],
+   "tp": "rpg/tp/beach"
+  },
+  "deepsea": {
+   "name": "보스: 심해 신전",
+   "arrival": [
+    -100,
+    31,
+    404
+   ],
+   "tp": "rpg/tp/deepsea"
+  },
+  "nether": {
+   "name": "지옥",
+   "arrival": [
+    156,
+    61,
+    344
+   ],
+   "tp": "rpg/tp/nether"
+  },
+  "castle": {
+   "name": "마왕성",
+   "arrival": [
+    196,
+    67,
+    452
+   ],
+   "tp": "rpg/tp/castle"
+  },
+  "dungeon": {
+   "name": "보스: 마왕성 지하감옥",
+   "arrival": [
+    166,
+    25,
+    522
+   ],
+   "tp": "rpg/tp/dungeon"
+  },
+  "deepdark": {
+   "name": "워든 서식지",
+   "arrival": [
+    90,
+    34,
+    480
+   ],
+   "tp": "rpg/tp/deepdark"
+  }
+ },
+ "shops": [
+  {
+   "region": "spawn",
+   "name": "모험가 쉼터",
+   "npc_spot": [
+    32,
+    65,
+    -1
+   ],
+   "counter": [
+    30,
+    65,
+    -1
+   ],
+   "customers_face": "west",
+   "ender_chests": [
+    [
+     29,
+     65,
+     -5
+    ],
+    [
+     29,
+     65,
+     -6
+    ]
+   ]
+  },
+  {
+   "region": "farm",
+   "name": "농장 직판장",
+   "npc_spot": [
+    -105,
+    65,
+    -26
+   ],
+   "counter": [
+    -105,
+    65,
+    -24
+   ],
+   "customers_face": "south",
+   "ender_chests": [
+    [
+     -109,
+     65,
+     -23
+    ],
+    [
+     -110,
+     65,
+     -23
+    ]
+   ]
+  },
+  {
+   "region": "cave",
+   "name": "광부의 쉼터",
+   "npc_spot": [
+    19,
+    53,
+    87
+   ],
+   "counter": [
+    21,
+    53,
+    87
+   ],
+   "customers_face": "east",
+   "ender_chests": [
+    [
+     22,
+     53,
+     91
+    ],
+    [
+     22,
+     53,
+     92
+    ]
+   ]
+  },
+  {
+   "region": "village",
+   "name": "저항군 은신처",
+   "npc_spot": [
+    -33,
+    65,
+    185
+   ],
+   "counter": [
+    -33,
+    65,
+    187
+   ],
+   "customers_face": "south",
+   "ender_chests": [
+    [
+     -37,
+     65,
+     188
+    ],
+    [
+     -38,
+     65,
+     188
+    ]
+   ]
+  },
+  {
+   "region": "hq",
+   "name": "잠입 거점",
+   "npc_spot": [
+    -148,
+    66,
+    243
+   ],
+   "counter": [
+    -148,
+    66,
+    241
+   ],
+   "customers_face": "north",
+   "ender_chests": [
+    [
+     -144,
+     66,
+     240
+    ],
+    [
+     -143,
+     66,
+     240
+    ]
+   ]
+  },
+  {
+   "region": "beach",
+   "name": "해변 매점",
+   "npc_spot": [
+    40,
+    67,
+    314
+   ],
+   "counter": [
+    40,
+    67,
+    316
+   ],
+   "customers_face": "south",
+   "ender_chests": [
+    [
+     36,
+     67,
+     317
+    ],
+    [
+     35,
+     67,
+     317
+    ]
+   ]
+  },
+  {
+   "region": "deepsea",
+   "name": "잠수부 기지",
+   "npc_spot": [
+    -104,
+    31,
+    422
+   ],
+   "counter": [
+    -104,
+    31,
+    420
+   ],
+   "customers_face": "north",
+   "ender_chests": [
+    [
+     -100,
+     31,
+     419
+    ],
+    [
+     -99,
+     31,
+     419
+    ]
+   ]
+  },
+  {
+   "region": "nether",
+   "name": "피글린 교역소",
+   "npc_spot": [
+    156,
+    62,
+    373
+   ],
+   "counter": [
+    158,
+    62,
+    373
+   ],
+   "customers_face": "east",
+   "ender_chests": [
+    [
+     159,
+     62,
+     377
+    ],
+    [
+     159,
+     62,
+     378
+    ]
+   ]
+  },
+  {
+   "region": "castle",
+   "name": "용사의 야영지",
+   "npc_spot": [
+    172,
+    67,
+    457
+   ],
+   "counter": [
+    172,
+    67,
+    459
+   ],
+   "customers_face": "south",
+   "ender_chests": [
+    [
+     168,
+     67,
+     460
+    ],
+    [
+     167,
+     67,
+     460
+    ]
+   ]
+  },
+  {
+   "region": "dungeon",
+   "name": "간수 초소",
+   "npc_spot": [
+    164,
+    25,
+    516
+   ],
+   "counter": [
+    166,
+    25,
+    516
+   ],
+   "customers_face": "east",
+   "ender_chests": [
+    [
+     167,
+     25,
+     520
+    ],
+    [
+     167,
+     25,
+     521
+    ]
+   ]
+  },
+  {
+   "region": "deepdark",
+   "name": "탐험가 은신처",
+   "npc_spot": [
+    80,
+    33,
+    477
+   ],
+   "counter": [
+    82,
+    33,
+    477
+   ],
+   "customers_face": "east",
+   "ender_chests": [
+    [
+     83,
+     33,
+     481
+    ],
+    [
+     83,
+     33,
+     482
+    ]
+   ]
+  }
+ ],
+ "hunting_grounds": [
+  {
+   "region": "spawn",
+   "name": "초보자 훈련장",
+   "key": "spawn_training",
+   "box": [
+    22,
+    65,
+    24,
+    42,
+    69,
+    40
+   ],
+   "entrances": [
+    [
+     17,
+     65,
+     28
+    ]
+   ],
+   "spawn_points": [
+    [
+     27,
+     65,
+     30
+    ],
+    [
+     32,
+     65,
+     30
+    ],
+    [
+     37,
+     65,
+     30
+    ],
+    [
+     27,
+     65,
+     34
+    ],
+    [
+     32,
+     65,
+     34
+    ],
+    [
+     37,
+     65,
+     34
+    ]
+   ],
+   "roofed": false,
+   "functions": [
+    "rpg/hunt/spawn_training",
+    "rpg/arena/spawn_training_off",
+    "rpg/arena/spawn_training_on"
+   ]
+  },
+  {
+   "region": "farm",
+   "name": "들판 사냥터",
+   "key": "farm_field",
+   "box": [
+    -176,
+    65,
+    8,
+    -152,
+    69,
+    32
+   ],
+   "entrances": [
+    [
+     -162,
+     65,
+     3
+    ]
+   ],
+   "spawn_points": [
+    [
+     -168,
+     65,
+     14
+    ],
+    [
+     -160,
+     65,
+     14
+    ],
+    [
+     -168,
+     65,
+     20
+    ],
+    [
+     -160,
+     65,
+     20
+    ],
+    [
+     -168,
+     65,
+     26
+    ],
+    [
+     -160,
+     65,
+     26
+    ]
+   ],
+   "roofed": false,
+   "functions": [
+    "rpg/hunt/farm_field",
+    "rpg/arena/farm_field_off",
+    "rpg/arena/farm_field_on"
+   ]
+  },
+  {
+   "region": "cave",
+   "name": "동굴 사냥터",
+   "key": "cave",
+   "box": [
+    -56,
+    53,
+    92,
+    -32,
+    62,
+    116
+   ],
+   "entrances": [
+    [
+     -23,
+     53,
+     104
+    ]
+   ],
+   "spawn_points": [
+    [
+     -50,
+     53,
+     99
+    ],
+    [
+     -44,
+     53,
+     98
+    ],
+    [
+     -38,
+     53,
+     100
+    ],
+    [
+     -50,
+     53,
+     108
+    ],
+    [
+     -43,
+     53,
+     110
+    ],
+    [
+     -38,
+     53,
+     107
+    ],
+    [
+     -44,
+     53,
+     104
+    ]
+   ],
+   "roofed": true,
+   "functions": [
+    "rpg/hunt/cave",
+    "rpg/arena/cave_off",
+    "rpg/arena/cave_on"
+   ]
+  },
+  {
+   "region": "village",
+   "name": "점령지 광장",
+   "key": "village_square",
+   "box": [
+    24,
+    65,
+    232,
+    52,
+    70,
+    258
+   ],
+   "entrances": [
+    [
+     19,
+     65,
+     244
+    ]
+   ],
+   "spawn_points": [
+    [
+     33,
+     65,
+     238
+    ],
+    [
+     38,
+     65,
+     238
+    ],
+    [
+     45,
+     65,
+     238
+    ],
+    [
+     31,
+     65,
+     245
+    ],
+    [
+     38,
+     65,
+     245
+    ],
+    [
+     45,
+     65,
+     245
+    ],
+    [
+     31,
+     65,
+     252
+    ]
+   ],
+   "roofed": false,
+   "functions": [
+    "rpg/hunt/village_square",
+    "rpg/arena/village_square_off",
+    "rpg/arena/village_square_on"
+   ]
+  },
+  {
+   "region": "hq",
+   "name": "근위대 훈련장",
+   "key": "hq_barracks",
+   "box": [
+    -159,
+    66,
+    204,
+    -137,
+    71,
+    218
+   ],
+   "entrances": [
+    [
+     -149,
+     66,
+     220
+    ]
+   ],
+   "spawn_points": [
+    [
+     -154,
+     66,
+     210
+    ],
+    [
+     -148,
+     66,
+     209
+    ],
+    [
+     -143,
+     66,
+     210
+    ],
+    [
+     -154,
+     66,
+     215
+    ],
+    [
+     -142,
+     66,
+     215
+    ],
+    [
+     -148,
+     66,
+     212
+    ]
+   ],
+   "roofed": true,
+   "functions": [
+    "rpg/hunt/hq_barracks",
+    "rpg/arena/hq_barracks_off",
+    "rpg/arena/hq_barracks_on"
+   ]
+  },
+  {
+   "region": "beach",
+   "name": "해안 사냥터",
+   "key": "beach_cove",
+   "box": [
+    62,
+    65,
+    300,
+    88,
+    70,
+    320
+   ],
+   "entrances": [
+    [
+     75,
+     65,
+     325
+    ]
+   ],
+   "spawn_points": [
+    [
+     69,
+     65,
+     306
+    ],
+    [
+     75,
+     65,
+     306
+    ],
+    [
+     82,
+     65,
+     306
+    ],
+    [
+     68,
+     65,
+     314
+    ],
+    [
+     75,
+     65,
+     314
+    ],
+    [
+     82,
+     65,
+     314
+    ]
+   ],
+   "roofed": false,
+   "functions": [
+    "rpg/hunt/beach_cove",
+    "rpg/arena/beach_cove_off",
+    "rpg/arena/beach_cove_on"
+   ]
+  },
+  {
+   "region": "deepsea",
+   "name": "가라앉은 회랑",
+   "key": "deepsea_gallery",
+   "box": [
+    -147,
+    31,
+    383,
+    -97,
+    37,
+    394
+   ],
+   "entrances": [
+    [
+     -105,
+     31,
+     397
+    ]
+   ],
+   "spawn_points": [
+    [
+     -139,
+     31,
+     388
+    ],
+    [
+     -139,
+     31,
+     389
+    ],
+    [
+     -127,
+     31,
+     388
+    ],
+    [
+     -127,
+     31,
+     389
+    ],
+    [
+     -113,
+     31,
+     388
+    ],
+    [
+     -113,
+     31,
+     389
+    ],
+    [
+     -103,
+     31,
+     388
+    ],
+    [
+     -103,
+     31,
+     389
+    ]
+   ],
+   "roofed": true,
+   "functions": [
+    "rpg/hunt/deepsea_gallery",
+    "rpg/arena/deepsea_gallery_off",
+    "rpg/arena/deepsea_gallery_on"
+   ]
+  },
+  {
+   "region": "nether",
+   "name": "요새 사냥터",
+   "key": "nether_fortress",
+   "box": [
+    212,
+    61,
+    300,
+    240,
+    70,
+    322
+   ],
+   "entrances": [
+    [
+     225,
+     61,
+     327
+    ]
+   ],
+   "spawn_points": [
+    [
+     219,
+     61,
+     304
+    ],
+    [
+     219,
+     61,
+     318
+    ],
+    [
+     227,
+     61,
+     304
+    ],
+    [
+     227,
+     61,
+     318
+    ],
+    [
+     235,
+     61,
+     304
+    ],
+    [
+     235,
+     61,
+     318
+    ]
+   ],
+   "roofed": true,
+   "functions": [
+    "rpg/hunt/nether_fortress",
+    "rpg/arena/nether_fortress_off",
+    "rpg/arena/nether_fortress_on"
+   ]
+  },
+  {
+   "region": "castle",
+   "name": "마왕군 연병장",
+   "key": "castle_drill",
+   "box": [
+    233,
+    67,
+    478,
+    252,
+    75,
+    500
+   ],
+   "entrances": [
+    [
+     228,
+     67,
+     489
+    ]
+   ],
+   "spawn_points": [
+    [
+     239,
+     67,
+     484
+    ],
+    [
+     246,
+     67,
+     484
+    ],
+    [
+     239,
+     67,
+     489
+    ],
+    [
+     246,
+     67,
+     489
+    ],
+    [
+     239,
+     67,
+     494
+    ],
+    [
+     246,
+     67,
+     494
+    ]
+   ],
+   "roofed": true,
+   "functions": [
+    "rpg/hunt/castle_drill",
+    "rpg/arena/castle_drill_off",
+    "rpg/arena/castle_drill_on"
+   ]
+  },
+  {
+   "region": "dungeon",
+   "name": "감방 구역",
+   "key": "dungeon_cells",
+   "box": [
+    140,
+    25,
+    504,
+    159,
+    32,
+    532
+   ],
+   "entrances": [
+    [
+     162,
+     25,
+     519
+    ]
+   ],
+   "spawn_points": [
+    [
+     143,
+     25,
+     510
+    ],
+    [
+     143,
+     25,
+     526
+    ],
+    [
+     149,
+     25,
+     510
+    ],
+    [
+     149,
+     25,
+     526
+    ],
+    [
+     156,
+     25,
+     510
+    ],
+    [
+     156,
+     25,
+     526
+    ]
+   ],
+   "roofed": true,
+   "functions": [
+    "rpg/hunt/dungeon_cells",
+    "rpg/arena/dungeon_cells_off",
+    "rpg/arena/dungeon_cells_on"
+   ]
+  },
+  {
+   "region": "deepdark",
+   "name": "고대 도시 사냥터",
+   "key": "deepdark_plaza",
+   "box": [
+    8,
+    33,
+    548,
+    32,
+    41,
+    572
+   ],
+   "entrances": [
+    [
+     20,
+     33,
+     543
+    ]
+   ],
+   "spawn_points": [
+    [
+     16,
+     33,
+     553
+    ],
+    [
+     16,
+     33,
+     560
+    ],
+    [
+     16,
+     33,
+     568
+    ],
+    [
+     24,
+     33,
+     553
+    ],
+    [
+     24,
+     33,
+     560
+    ],
+    [
+     24,
+     33,
+     568
+    ]
+   ],
+   "roofed": true,
+   "functions": [
+    "rpg/hunt/deepdark_plaza",
+    "rpg/arena/deepdark_plaza_off",
+    "rpg/arena/deepdark_plaza_on"
+   ]
+  }
+ ],
+ "bosses": [
+  {
+   "region": "hq",
+   "name": "의식의 대전당",
+   "boss_spawn": [
+    -170,
+    66,
+    226
+   ],
+   "box": [
+    -183,
+    66,
+    210,
+    -161,
+    83,
+    242
+   ],
+   "entrance": [
+    -159,
+    66,
+    226
+   ],
+   "function": "rpg/boss/hq"
+  },
+  {
+   "region": "deepsea",
+   "name": "심연의 제단",
+   "boss_spawn": [
+    -132,
+    29,
+    412
+   ],
+   "box": [
+    -147,
+    31,
+    397,
+    -113,
+    48,
+    425
+   ],
+   "entrance": [
+    -110,
+    31,
+    404
+   ],
+   "function": "rpg/boss/deepsea"
+  },
+  {
+   "region": "dungeon",
+   "name": "대감옥 심판장",
+   "boss_spawn": [
+    194,
+    25,
+    518
+   ],
+   "box": [
+    176,
+    25,
+    500,
+    212,
+    46,
+    536
+   ],
+   "entrance": [
+    176,
+    25,
+    518
+   ],
+   "function": "rpg/boss/dungeon"
+  }
+ ],
+ "gacha": [
+  {
+   "tier": "common",
+   "button": [
+    -15,
+    67,
+    -37
+   ],
+   "function": "rpg/gacha/common"
+  },
+  {
+   "tier": "rare",
+   "button": [
+    -5,
+    67,
+    -37
+   ],
+   "function": "rpg/gacha/rare"
+  },
+  {
+   "tier": "epic",
+   "button": [
+    5,
+    67,
+    -37
+   ],
+   "function": "rpg/gacha/epic"
+  },
+  {
+   "tier": "legend",
+   "button": [
+    15,
+    67,
+    -37
+   ],
+   "function": "rpg/gacha/legend"
+  }
+ ],
+ "gates": [
+  {
+   "next": "§a농장",
+   "prev": "§f스폰 (뽑기장)",
+   "pos": [
+    -71,
+    70,
+    -9
+   ],
+   "facing": "west",
+   "glass": "yellow"
+  },
+  {
+   "next": "§2보스: 우민 본거지",
+   "prev": "§a점령된 마을",
+   "pos": [
+    -78,
+    70,
+    229
+   ],
+   "facing": "west",
+   "glass": "green"
+  },
+  {
+   "next": "§b해변",
+   "prev": "§a점령된 마을",
+   "pos": [
+    22,
+    71,
+    289
+   ],
+   "facing": "south",
+   "glass": "light_blue"
+  },
+  {
+   "next": "§5마왕성",
+   "prev": "§c지옥",
+   "pos": [
+    196,
+    67,
+    444
+   ],
+   "facing": "south",
+   "glass": "purple"
+  }
+ ],
+ "verification": {
+  "reachable": 1064595,
+  "trapped": 0,
+  "escaped": 0,
+  "fall_edges": 0,
+  "light": {
+   "spawn": "spots=8559 min=1 median=5 target>=1 dark=0",
+   "farm": "spots=7182 min=1 median=5 target>=1 dark=0",
+   "cave": "spots=3818 min=2 median=6 target>=2 dark=0",
+   "village": "spots=11129 min=1 median=5 target>=1 dark=0",
+   "hq_out": "spots=10190 min=1 median=5 target>=1 dark=0",
+   "hq_in": "spots=3611 min=6 median=7 target>=6 dark=0",
+   "beach": "spots=6835 min=1 median=4 target>=1 dark=0",
+   "deepsea": "spots=1237 min=6 median=9 target>=6 dark=0",
+   "nether": "spots=8891 min=1 median=5 target>=1 dark=0",
+   "crater": "spots=11495 min=1 median=5 target>=1 dark=0",
+   "keep": "spots=699 min=5 median=7 target>=5 dark=0",
+   "dungeon": "spots=1545 min=4 median=6 target>=4 dark=0",
+   "deepdark": "spots=12128 min=1 median=3 target>=1 dark=0"
+  }
+ }
+}

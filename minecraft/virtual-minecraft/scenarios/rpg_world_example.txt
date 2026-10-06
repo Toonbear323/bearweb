@@ -1,0 +1,36 @@
+# 'RPG 모험의 길' 월드(RPGWorld.mcworld)용 예시 시나리오
+#   python vmc.py test RPGWorld.mcworld --script scenarios/rpg_world_example.txt --seconds 60
+#
+# 행동 팩 스크립트가 켜졌는지 (스크립트가 console.warn 으로 'ok gacha=4' 를 출력)
+확인 scriptevent rpg:diag => ok gacha=4
+
+# 처음 열 때 도는 설정 함수가 끝났는지 (점수판에 setup_done 이 생김)
+확인 scoreboard players list * => setup_done
+
+# 블록이 제자리에 있는지: 쉼터 엔더 상자, 뽑기 버튼
+확인 testforblock 29 65 -5 ender_chest
+확인 testforblock -15 67 -37 stone_button
+
+# 농장 동물은 농장 청크가 불러와진 뒤 한 번만 소환됨
+대기 20
+확인 testfor @e[type=cow]
+
+# 동굴 사냥터 조명 끄기 → 조명 자리가 비었는지 → 다시 켜기
+확인 function rpg/arena/cave_off
+확인 testforblock -54 57 99 air
+확인 function rpg/arena/cave_on
+확인 testforblock -54 57 99 light_block_11
+
+# 사냥터 예시 몬스터, 우민 본거지 보스
+확인 function rpg/hunt/cave
+대기 3
+확인 testfor @e[type=zombie]
+확인 function rpg/boss/hq
+대기 3
+확인 testfor @e[type=evocation_illager] => Found
+
+# 정리: 몬스터를 모두 없애고, 남은 좀비가 없어야 통과
+kill @e[type=zombie]
+kill @e[type=cave_spider]
+kill @e[type=evocation_illager]
+실패확인 testfor @e[type=zombie]

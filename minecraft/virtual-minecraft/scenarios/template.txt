@@ -1,0 +1,43 @@
+# 시나리오 파일 만들기 (이 파일을 복사해서 고쳐 쓰세요)
+#
+# 한 줄에 명령 하나씩, 위에서부터 차례로 실행합니다. 서버 콘솔 명령이라 앞에 / 는 없어도 됩니다.
+# '#' 으로 시작하는 줄과 빈 줄은 무시합니다.
+#
+#   대기 10                          10초 기다림 (wait 10 도 됨)
+#   time set day                     그냥 실행하고 응답만 기록
+#   확인 testforblock 0 64 0 stone    명령이 성공해야 통과 (check 도 됨)
+#   확인 scriptevent my:diag => ok    응답에 'ok' 라는 글자가 있어야 통과
+#   실패확인 testfor @e[type=zombie]   명령이 실패해야 통과 = 좀비가 없어야 통과 (checkfail 도 됨)
+#
+# 알아둘 점
+#  - 서버에는 플레이어가 없어서, 블록·엔티티 명령은 '실행 범위(tickingarea)' 안에서만 됩니다.
+#    도구가 월드 전체(청크가 많으면 스폰 근처부터)를 실행 범위로 자동으로 켜고,
+#    시나리오에 적힌 좌표(x y z)가 있는 곳을 먼저 켭니다.
+#  - 시나리오에 tickingarea 명령을 직접 쓰면 자동 실행 범위는 켜지 않습니다.
+#  - @a, @p, @s 처럼 플레이어가 필요한 선택자는 대상이 없어서 실패합니다. @e[type=...] 를 쓰세요.
+#  - say, tellraw 의 글은 서버 기록에 나오지 않습니다. 스크립트에서는 console.warn("...") 이 기록에 나옵니다.
+#  - 엔티티가 생기거나 몹이 움직일 시간이 필요하면 '대기' 를 넣으세요.
+
+# ---- 아래는 아무 월드에서나 돌아가는 예시입니다 ----
+
+# 낮으로 바꾸고 날씨를 맑게
+time set day
+weather clear
+
+# 점수판 목록 보기 (행동 팩의 설정 함수가 만든 점수판이 있는지 볼 때)
+scoreboard objectives list
+
+# 스폰 근처에 소 한 마리를 소환하고, 소가 있는지 확인한 뒤 없앰
+#   (좌표는 내 월드의 스폰 근처로 바꾸세요. info 메뉴에서 스폰 좌표를 볼 수 있습니다)
+summon cow 0 100 0
+대기 2
+확인 testfor @e[type=cow]
+kill @e[type=cow]
+실패확인 testfor @e[type=cow]
+
+# 내 월드에 맞게 바꿔 쓸 예시 (앞의 # 을 지우면 실행됩니다)
+# 확인 testforblock 10 64 20 chest
+# 확인 function my_pack/setup
+# 확인 execute if block 10 64 20 chest
+# 확인 scoreboard players list * => setup_done
+# 확인 scriptevent my:diag => ok

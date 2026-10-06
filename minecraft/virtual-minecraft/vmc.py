@@ -26,17 +26,20 @@ if HERE not in sys.path:                 # the portable Windows Python does not 
 import argparse
 import collections
 import datetime
+import hashlib
 import json
 import platform
 import re
 import shutil
 import socket
+import struct
 import subprocess
 import threading
 import time
 import urllib.parse
 import urllib.request
 import zipfile
+import zlib
 
 import bedrock_db as bdb
 
@@ -155,7 +158,7 @@ def setup(preview=False, yes=False, url=None, force=False):
     ver = os.path.splitext(os.path.basename(urllib.parse.urlparse(url).path))[0].replace("bedrock-server-", "")
     if not force and server_version() == ver and os.path.exists(server_exe()):
         print("이미 최신 버전(%s)이 설치되어 있습니다." % ver)
-        return True
+        return ensure_vc_runtime()
     os.makedirs(SERVER_DIR, exist_ok=True)
     zpath = os.path.join(HERE, "server_download.zip")
     print("버전 %s" % ver)
@@ -175,14 +178,167 @@ def setup(preview=False, yes=False, url=None, force=False):
         os.chmod(server_exe(), 0o755)
     open(os.path.join(SERVER_DIR, "version.txt"), "w").write(ver + "\n")
     print("설치 완료: %s (버전 %s)" % (SERVER_DIR, ver))
-    return True
+    return ensure_vc_runtime()
 
 
 def ensure_server():
     if os.path.exists(server_exe()):
-        return True
+        return ensure_vc_runtime()
     print("서버(BDS)가 아직 설치되지 않았습니다.")
     return setup()
+
+
+# ============================================================================ Visual C++ runtime (Windows)
+# bedrock_server.exe needs msvcp140.dll, vcruntime140.dll and vcruntime140_1.dll. Many PCs lack them and
+# installing the redistributable needs administrator rights, so the DLLs are taken out of Microsoft's
+# official vc_redist.x64.exe (signature checked, never run) and put next to bedrock_server.exe.
+
+VC_URL = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+VC_NEEDED = ("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+VC_KNOWN_SHA256 = {"cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b": "14.44.35211"}
+
+
+def _cab_parse(data):
+    """Header of a Microsoft cabinet -> (folders [(offset, blocks, compression)], files [(name, size, offset,
+    folder)], bytes reserved per data block)."""
+    if data[:4] != b"MSCF":
+        raise ValueError("not a cabinet")
+    coff, = struct.unpack_from("<I", data, 16)
+    nfold, nfile, flags = struct.unpack_from("<HHH", data, 26)
+    o, cb_fold, cb_data = 36, 0, 0
+    if flags & 4:
+        cb_hdr, cb_fold, cb_data = struct.unpack_from("<HBB", data, 36)
+        o = 40 + cb_hdr
+    for bit in (1, 2):                       # previous / next cabinet names
+        if flags & bit:
+            for _ in range(2):
+                o = data.index(b"\0", o) + 1
+    folders = []
+    for _ in range(nfold):
+        start, ndata, ctype = struct.unpack_from("<IHH", data, o)
+        folders.append((start, ndata, ctype & 0xF))
+        o += 8 + cb_fold
+    files, o = [], coff
+    for _ in range(nfile):
+        size, off, ifold, _date, _time, attr = struct.unpack_from("<IIHHHH", data, o)
+        end = data.index(b"\0", o + 16)
+        files.append((data[o + 16:end].decode("utf-8" if attr & 0x80 else "latin-1"), size, off, ifold))
+        o = end + 1
+    return folders, files, cb_data
+
+
+def cab_extract(data, want=lambda name: True):
+    """Files of a stored or MSZIP cabinet -> {name: bytes}."""
+    folders, files, cb_data = _cab_parse(data)
+    streams, out = {}, {}
+    for name, size, off, ifold in files:
+        if not want(name):
+            continue
+        if ifold not in streams:
+            start, ndata, ctype = folders[ifold]
+            buf, prev, p = bytearray(), b"", start
+            for _ in range(ndata):
+                _csum, cbd, _cbu = struct.unpack_from("<IHH", data, p)
+                p += 8 + cb_data
+                blk = data[p:p + cbd]
+                p += cbd
+                if ctype == 0:
+                    chunk = blk
+                elif ctype == 1 and blk[:2] == b"CK":          # MSZIP: deflate, previous block as history
+                    d = zlib.decompressobj(-15, zdict=prev) if prev else zlib.decompressobj(-15)
+                    chunk = d.decompress(blk[2:]) + d.flush()
+                else:
+                    raise ValueError("unsupported cabinet compression %d" % ctype)
+                buf += chunk
+                prev = bytes(chunk[-32768:])
+            streams[ifold] = bytes(buf)
+        out[name] = streams[ifold][off:off + size]
+    return out
+
+
+def runtime_from_vc_redist(exe):
+    """{dll name: bytes} of the x64 runtime packed inside vc_redist.x64.exe (a WiX bundle of cabinets)."""
+    for m in re.finditer(b"MSCF\0\0\0\0", exe):
+        size, = struct.unpack_from("<I", exe, m.start() + 8)
+        if size < 64 or m.start() + size > len(exe):
+            continue
+        try:
+            outer = cab_extract(exe[m.start():m.start() + size])
+        except (ValueError, struct.error, zlib.error):
+            continue
+        for blob in outer.values():
+            if not blob.startswith(b"MSCF"):
+                continue
+            try:
+                names = [f[0].lower() for f in _cab_parse(blob)[1]]
+            except (ValueError, struct.error):
+                continue
+            if "vcruntime140_1.dll_amd64" in names:
+                inner = cab_extract(blob, lambda n: n.lower().endswith(".dll_amd64") and n.lower().startswith(
+                    ("msvcp140", "vcruntime140", "concrt140")))
+                return {n[:-len("_amd64")].lower(): b for n, b in inner.items()}
+    return {}
+
+
+def microsoft_signed(path):
+    """(ok, detail): Authenticode signature of a file is valid and belongs to Microsoft (checked by Windows)."""
+    ps = ("$s = Get-AuthenticodeSignature -LiteralPath $env:VMC_FILE; "
+          "if ($s.Status -eq 'Valid' -and $s.SignerCertificate.Subject -like '*O=Microsoft Corporation*') { exit 0 }; "
+          "Write-Output ([string]$s.Status + ' / ' + [string]$s.SignerCertificate.Subject); exit 1")
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps],
+                           env=dict(os.environ, VMC_FILE=path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           timeout=180)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return False, "PowerShell 을 실행하지 못함 (%s)" % e
+    return r.returncode == 0, r.stdout.decode("utf-8", "replace").strip()
+
+
+def vc_runtime_ready():
+    return not IS_WIN or all(os.path.exists(os.path.join(SERVER_DIR, d)) for d in VC_NEEDED)
+
+
+def vc_manual_hint():
+    print("  직접 해결하려면 Microsoft 공식 'Visual C++ 재배포 패키지(x64)'를 설치하세요 (관리자 권한 필요):")
+    print("  " + VC_URL)
+
+
+def ensure_vc_runtime():
+    if vc_runtime_ready():
+        return True
+    print()
+    print("서버 프로그램에 필요한 Microsoft Visual C++ 런타임 파일(msvcp140.dll, vcruntime140.dll, "
+          "vcruntime140_1.dll)을 준비합니다.")
+    print("Microsoft 공식 재배포 패키지(약 25MB)를 받아서, 설치는 하지 않고 필요한 파일만 서버 폴더에 넣습니다.")
+    print("(관리자 권한이 필요 없고 PC 설정도 바꾸지 않습니다.)")
+    exe = os.path.join(HERE, "vc_redist_download.exe")
+    try:
+        download(VC_URL, exe)
+        data = open(exe, "rb").read()
+        if hashlib.sha256(data).hexdigest() not in VC_KNOWN_SHA256:
+            ok, why = microsoft_signed(exe)
+            if not ok:
+                print("[중단] 받은 파일이 Microsoft 서명 파일인지 확인하지 못했습니다: %s" % why)
+                vc_manual_hint()
+                return False
+        dlls = runtime_from_vc_redist(data)
+        missing = [d for d in VC_NEEDED if d not in dlls]
+        if missing:
+            print("[중단] 재배포 패키지 안에서 %s 를 찾지 못했습니다." % ", ".join(missing))
+            vc_manual_hint()
+            return False
+        for name, blob in sorted(dlls.items()):
+            open(os.path.join(SERVER_DIR, name), "wb").write(blob)
+        print("  런타임 파일 %d개를 서버 폴더에 넣었습니다." % len(dlls))
+        return True
+    except Exception as e:
+        print("[중단] 런타임 파일을 준비하지 못했습니다: %r" % e)
+        vc_manual_hint()
+        return False
+    finally:
+        for p in (exe, exe + ".part"):
+            if os.path.exists(p):
+                os.remove(p)
 
 
 # ============================================================================ worlds
@@ -420,6 +576,14 @@ def server_props(level, port, lan, allow_list=True):
 
 
 def start_failure_hint(srv):
+    code = srv.proc.returncode if srv.proc else None
+    if code is not None and code < 0:
+        code &= 0xFFFFFFFF
+    if code == 0xC0000135:
+        return ("서버 실행에 필요한 DLL 파일이 없습니다 (Visual C++ 런타임). server 폴더의 msvcp140.dll / "
+                "vcruntime140.dll / vcruntime140_1.dll 을 지우고 다시 실행하면 새로 받습니다.")
+    if code in (0xC0000139, 0xC000007B):
+        return "DLL 파일이 맞지 않습니다. server 폴더의 msvcp140.dll / vcruntime140*.dll 을 지우고 다시 실행하세요."
     text = srv.log_text()
     if "port occupied" in text.lower() or "address already in use" in text.lower():
         return "포트가 이미 사용 중입니다. 다른 서버를 끄거나 --port 로 다른 번호를 지정하세요."

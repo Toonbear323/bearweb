@@ -8,6 +8,8 @@ echo   Virtual Minecraft tester - one-time setup
 echo.
 echo   1. Portable Python 3.12 from python.org  (11 MB, stays in this folder)
 echo   2. Minecraft Bedrock Dedicated Server from minecraft.net  (90 MB)
+echo   3. Visual C++ runtime DLLs for the server, taken from Microsoft's official
+echo      vc_redist.x64.exe (25 MB, nothing is installed, no admin rights needed)
 echo ============================================================
 echo.
 
@@ -45,7 +47,7 @@ call "%RT%\py.bat" -c "import sys, ssl; print('Python', sys.version.split()[0], 
 if errorlevel 1 goto no_python
 
 echo.
-echo [2/2] Minecraft Bedrock Dedicated Server
+echo [2/2] Minecraft Bedrock Dedicated Server + Visual C++ runtime DLLs
 call "%RT%\py.bat" "%~dp0vmc.py" setup
 if errorlevel 1 goto end
 

@@ -16,7 +16,7 @@ KEYWORDS = [
     ("jungle_leaves", (60, 150, 40)), ("leaves", (70, 125, 40)), ("pale_oak", (220, 215, 210)),
     ("birch_log", (216, 215, 210)), ("cherry_log", (60, 34, 44)), ("spruce_log", (58, 37, 16)),
     ("dark_oak_log", (60, 46, 26)), ("jungle_log", (85, 67, 25)), ("log", (109, 85, 50)), ("_wood", (100, 78, 46)),
-    ("nether_wart_block", (115, 10, 10)), ("mushroom_stem", (205, 196, 178)), ("brown_mushroom_block", (149, 111, 81)), ("stem", (90, 50, 60)), ("cherry_planks", (226, 178, 172)), ("spruce", (114, 84, 48)),
+    ("nether_wart_block", (115, 10, 10)), ("oxidized_cut_copper", (82, 162, 132)), ("oxidized_copper", (82, 162, 132)), ("mushroom_stem", (205, 196, 178)), ("brown_mushroom_block", (149, 111, 81)), ("stem", (90, 50, 60)), ("cherry_planks", (226, 178, 172)), ("spruce", (114, 84, 48)),
     ("dark_oak", (66, 43, 20)), ("birch", (192, 175, 121)), ("jungle", (160, 115, 80)),
     ("acacia", (168, 90, 50)), ("mangrove", (117, 54, 48)), ("bamboo", (190, 170, 80)), ("crimson", (101, 48, 70)),
     ("warped", (43, 104, 99)), ("oak", (162, 130, 78)), ("planks", (162, 130, 78)),

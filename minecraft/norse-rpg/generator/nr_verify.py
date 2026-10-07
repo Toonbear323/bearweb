@@ -83,3 +83,31 @@ def verify_dungeon(d, allowed=None, fix_traps=True, rounds=4):
     out["falls"] = len(rep.get("falls", []))
     d.verification = out
     return out, rep
+
+
+def gate_check(d):
+    """With every arena's exit gate shut (as built), open them one by one in arena order and report what becomes
+    reachable at each stage. A zone or exit that is reachable before its gate opens means the gate can be bypassed."""
+    a = d.a
+    box = (d.x0 + 1, d.z0 + 1, d.x0 + d.sx - 2, d.z0 + d.sz - 2)
+    yr = (d.Y0 + 1, d.Y0 + d.SY - 4)
+    seeds = [tuple(int(math.floor(v)) for v in d.data["start"][:3])]
+    order = sorted(d.arenas, key=lambda ar: {"mid1": 0, "mid2": 1, "final": 2}.get(ar["role"], 3))
+    saved = []
+    stages = []
+    for stage in range(len(order) + 1):
+        S = walk(a, box, yr, seeds)["_set"]
+        got = [k for k, z in d.zones.items() if z["points"] and any(near(S, p, 1, 1) for p in z["points"])]
+        ars = [ar["id"] for ar in d.arenas if near(S, (ar["x"], ar["y"], ar["z"]), 2, 1)]
+        ex = False
+        if d.data.get("exit"):
+            x1, y1, z1, x2, y2, z2 = d.data["exit"]
+            ex = near(S, ((x1 + x2) / 2, y1, (z1 + z2) / 2), 1, 1)
+        stages.append(dict(opened=[o["id"] for o in order[:stage]], zones=got, arenas=ars, exit=ex))
+        if stage < len(order):
+            for (x, y, z) in order[stage]["exit"]:
+                saved.append((x, y, z, a.get(x, y, z)))
+                a.set(x, y, z, AIR)
+    for (x, y, z, b) in saved:
+        a.set(x, y, z, b)
+    return stages

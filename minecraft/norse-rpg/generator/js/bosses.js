@@ -222,7 +222,7 @@ function onDefeat(c) {
       give(p, "nrpg:rune_shard", 4 * tierMul + Math.floor(rand(0, 3)));
       give(p, "nrpg:rune_core", tierMul);
       if (tierMul === 3) give(p, "nrpg:ward_scroll", 1);
-      p.sendMessage("§6[보상] §f룬 조각과 룬 정수를 받았습니다. 출구의 귀환선을 타면 항구로 돌아갑니다.");
+      p.sendMessage("§6[보상] §f룬 조각과 룬 정수를 받았습니다. 보스 뒤 출구의 룬 원에 들어서면 항구로 돌아갑니다.");
     } else {
       title(p, "§e§l중간 보스 처치", "§f" + c.def.ko + " — 다음 구역 문이 열렸습니다", 60);
       sound(p, "random.levelup", 1, 0.8);

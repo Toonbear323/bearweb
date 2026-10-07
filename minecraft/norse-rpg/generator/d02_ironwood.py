@@ -464,20 +464,36 @@ class IronWood(Dungeon):
                     a.set(mx + dx, my + dy, mz, B("light_gray_concrete") if crater else B("white_concrete"))
                     if d > Rm - 1.2:
                         a.set(mx + dx, my + dy, mz + 1, B("pearlescent_froglight"))
-        # exit portal on the hill behind the arena (north-west)
-        ex, ez = cx - R - 6, cz - 4
-        for x in range(ex - 4, ex + 5):
-            for z in range(ez - 4, ez + 5):
-                a.set(x, y - 1, z, B("stone"))
-                for yy in range(y, y + 6):
-                    a.set(x, yy, z, AIR)
-        for xx in range(cx - R - 2, ex):
-            for w in range(-1, 2):
-                a.set(xx, y - 1, ez + w, B("stone"))
-                for yy in range(y, y + 4):
-                    a.set(xx, yy, ez + w, AIR)
-        self.exit_portal(ex, y, ez)
-        ar["exit"] = [list(p) for p in self.doorway(cx - R - 1, y, ez, 3, 3, "z")]
+        # exit portal in an alcove cut into the valley wall west of the arena; the gate stands in its mouth
+        lz_ex = 22
+        mx = 54 - R - 1
+        while mx > 16 and self.carved[mx, lz_ex - 6:lz_ex + 7].any():
+            mx -= 1
+        ey = y
+        # a short corridor from the valley to the gate, then the gate in solid rock, then the alcove
+        for lx in range(mx + 1, 54 - R + 1):
+            for lz in range(lz_ex - 1, lz_ex + 2):
+                xx, zz = L(lx, lz)
+                a.set(xx, ey - 1, zz, B("stone"))
+                for yy in range(ey, ey + 4):
+                    a.set(xx, yy, zz, AIR)
+        mx_w, ez = L(mx, lz_ex)
+        for xx in range(mx_w - 11, mx_w + 1):
+            for zz in range(ez - 4, ez + 5):
+                inner = xx < mx_w - 1 or abs(zz - ez) <= 1
+                if not inner:
+                    continue
+                a.set(xx, ey - 1, zz, B("stone"))
+                for yy in range(ey, ey + 6):
+                    a.set(xx, yy, zz, AIR)
+        for yy in range(ey - 1, ey + 1):
+            for zz in range(ez - 1, ez + 2):
+                a.set(mx_w + 1, yy, zz, B("stone") if yy < ey else AIR)
+        self.exit_portal(mx_w - 6, ey, ez)
+        ar["exit"] = [list(p) for p in self.doorway(mx_w, ey, ez, 3, 3, "z")]
+        for yy in range(ey + 3, ey + 6):
+            for zz in range(ez - 1, ez + 2):
+                a.set(mx_w, yy, zz, B("cobbled_deepslate"))
         self.close([tuple(p) for p in ar["exit"]])
 
     def finish(self):

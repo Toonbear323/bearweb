@@ -24,6 +24,8 @@ def analyze(area, box, yr, seeds, inside=None, max_report=20, track_falls=False,
     from mcw import PAL
     stair_t = np.array([n.endswith("_stairs") for n in PAL.names] + [False] * (len(htab) - len(PAL.names)))
     Ss = stair_t[sub]
+    lava_t = np.array([n in ("lava", "flowing_lava") for n in PAL.names] + [False] * (len(htab) - len(PAL.names)))
+    Lv = lava_t[sub]                       # lava is never a place to be: not swimmable, not standable
     pas = Hs == 0
     nx, ny, nz = sub.shape
     # feet index j (1..ny-3) -> world y = y1 - 1 + j
@@ -39,10 +41,11 @@ def analyze(area, box, yr, seeds, inside=None, max_report=20, track_falls=False,
         a = (below == 2) & (feet == 0) & ~lf & (head == 0)
         b = (below == 3) & (feet == 0) & ~lf & (head == 0) & (head2 == 0)
         c = (feet == 1) & (head == 0) & (head2 == 0)
-        s = lf & (head == 0)
-        u = (feet == 0) & ~lf & lb & (head == 0)
+        nolava = ~Lv[:, j] & ~Lv[:, j + 1]
+        s = lf & (head == 0) & nolava
+        u = (feet == 0) & ~lf & lb & ~Lv[:, j - 1] & (head == 0)
         k = Cs[:, j] & (head == 0)
-        v = a | b | c | s | u | k
+        v = (a | b | c | s | u | k) & nolava
         valid[:, j] = v
         f = np.full((nx, nz), -999, np.int32)
         f[a | u | k | s] = 2 * wy[j]

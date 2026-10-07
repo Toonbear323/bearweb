@@ -1,9 +1,12 @@
 """Build the whole Norse RPG world: the harbour spawn, ten dungeons, both packs, the .mcworld and the .mcpack files.
 
 usage: python build_world.py <out_dir> [--only d01,d02] [--keep <work dir>]
+       python build_world.py <out_dir> --repack --keep <work dir>
 
 Every region is generated, walk-verified (traps are filled, escapes and gate bypasses reported), encoded into the
 world's LevelDB and dropped before the next one is built, so memory stays at one region at a time.
+--repack reuses the world kept by an earlier build (--keep) and only rebuilds the packs and the files: use it after
+changing scripts, models or pack data without touching the terrain.
 """
 import argparse
 import importlib
@@ -104,12 +107,20 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--only", default="")
     ap.add_argument("--keep", default=None)
+    ap.add_argument("--repack", action="store_true")
     args = ap.parse_args()
     out = os.path.abspath(args.out)
     os.makedirs(out, exist_ok=True)
+    t0 = time.time()
+    if args.repack:
+        if not args.keep or not os.path.isdir(os.path.join(args.keep, "world", "db")):
+            sys.exit("--repack needs --keep <work dir> of an earlier full build")
+        world_data = json.load(open(os.path.join(out, "world_data.json"), encoding="utf8"))
+        report = json.load(open(os.path.join(out, "build_report.json"), encoding="utf8"))
+        finish_world(out, os.path.join(args.keep, "world"), world_data, report, None, t0)
+        return
     only = [s for s in args.only.split(",") if s] or list(MODULES)
     report = {}
-    t0 = time.time()
 
     wdir = NP.new_world_dir(args.keep)
     db = NP.DB(os.path.join(wdir, "db"))
@@ -154,8 +165,14 @@ def main():
         print(did, json.dumps(report[did], ensure_ascii=False))
         del d, mod
 
-    # ---- packs
     world_data = dict(ARENAS=ARENAS, ZONES=ZONES, SPAWN=SPAWN, WORLDS=WORLDS)
+    json.dump(world_data, open(os.path.join(out, "world_data.json"), "w"), ensure_ascii=False)
+    finish_world(out, wdir, world_data, report, db, t0)
+
+
+def finish_world(out, wdir, world_data, report, db, t0):
+    """Packs, level.dat, icon, .mcworld, .mcpack files and the reports."""
+    arrival = world_data["SPAWN"]["arrival"]
     import nr_models
     packs = nr_pack.build(os.path.join(out, "packs"), world_data, nr_models)
     client_biomes(packs["rp"])
@@ -180,7 +197,8 @@ def main():
               overrides=overrides, db=db)
     nr_pack.mcpack(packs["bp"], os.path.join(out, "NorseRPG_behavior.mcpack"))
     nr_pack.mcpack(packs["rp"], os.path.join(out, "NorseRPG_resources.mcpack"))
-    report["total_seconds"] = round(time.time() - t0, 1)
+    if db is not None:                            # a repack keeps the full build's timings
+        report["total_seconds"] = round(time.time() - t0, 1)
     json.dump(report, open(os.path.join(out, "build_report.json"), "w"), ensure_ascii=False, indent=1)
     json.dump(world_info(world_data), open(os.path.join(out, "world_info.json"), "w"), ensure_ascii=False, indent=1)
     print("all done %.1fs" % (time.time() - t0))

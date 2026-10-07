@@ -2,7 +2,7 @@
 import { world, system, ItemStack, EnchantmentTypes } from "@minecraft/server";
 import { ActionFormData, MessageFormData } from "@minecraft/server-ui";
 import { OW, now, players, survivalish, valid, inBox, hdist, title, bar, sound, particle, showForm, tp, pget, pset, rand, pick, GameMode } from "./util.js";
-import { spawnMob, removeTagged } from "./mobs.js";
+import { spawnMob, removeTagged, lastSpawnError } from "./mobs.js";
 import { DUNGEONS, ORDER, ZONES, SPAWN, WORLDS } from "./data.js";
 
 const TIER_KO = { beginner: "§a초급", mid: "§e중급", high: "§c상급" };
@@ -540,7 +540,8 @@ export function rpgEvent(id, args, src) {
       const pt = Z.points[0];
       if (!pt) { bad++; continue; }
       const e = spawnMob(Z.mobs[0], { x: pt[0], y: pt[1], z: pt[2] }, ["nrpg_zonetest"], OW(), (DUNGEONS[Z.dungeon] || {}).tier);
-      if (e) ok++; else bad++;
+      if (e) ok++;
+      else { bad++; console.warn("[nrpg] zonetest " + Z.id + " " + Z.mobs[0] + " at " + pt.join(" ") + " failed: " + lastSpawnError); }
     }
     console.warn("[nrpg] zonetest spawned=" + ok + " failed=" + bad);
     removeTagged("nrpg_zonetest");

@@ -5,13 +5,15 @@ import { OW, valid } from "./util.js";
 const SLOT = { head: "slot.armor.head", chest: "slot.armor.chest", legs: "slot.armor.legs", feet: "slot.armor.feet", hand: "slot.weapon.mainhand" };
 const EFFECT_TIME = 20000000;
 
+export let lastSpawnError = "";
+
 export function spawnMob(key, loc, tags, dim, tier) {
   const def = MOBS[key];
-  if (!def) return undefined;
+  if (!def) { lastSpawnError = "unknown mob " + key; return undefined; }
   const [type, name, gear, effects] = def;
   dim = dim || OW();
   let e;
-  try { e = dim.spawnEntity(type, loc); } catch (err) { return undefined; }
+  try { e = dim.spawnEntity(type, loc); } catch (err) { lastSpawnError = type + ": " + err; return undefined; }
   try { e.nameTag = name; } catch (err) { }
   for (const t of tags || []) try { e.addTag(t); } catch (err) { }
   try { e.addTag("nrpg_mob"); } catch (err) { }

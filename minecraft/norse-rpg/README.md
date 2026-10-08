@@ -231,7 +231,8 @@
 | `/scriptevent nrpg:status` | 보스 방 22곳의 상태를 콘솔에 출력 |
 | `/scriptevent nrpg:kill d05_boss` · `nrpg:hurt d05_boss 0.5` | 보스 처치 / 체력을 비율만큼 깎기 |
 | `/scriptevent nrpg:reset` | 모든 보스 방 초기화 |
-| `/scriptevent nrpg:zones` · `nrpg:zonetest d05` | 사냥터 몬스터 수 출력 / 사냥터 몬스터 소환 시험 |
+| `/scriptevent nrpg:zones` · `nrpg:zonetest d05` | 사냥터 몬스터 수 출력 / 사냥터 몬스터 소환 시험(실패하면 구역과 이유 출력) |
+| `/scriptevent nrpg:mobtest x y z` | 몬스터 49종을 그 자리에 한 번씩 소환해 보고 바로 지움(엔티티 이름 검사) |
 
 보스 방 이름은 `d01_boss`~`d10_boss`, 중간 보스는 `d05_c3_mid`, `d05_c5_mid`처럼 씁니다.
 모든 좌표(배 갑판, 던전 시작·귀환선·출구, 구역 범위, 보스 방 중심)는 `world_info.json`에 정리되어 있습니다.
@@ -289,6 +290,8 @@ cd generator
 pip install -r requirements.txt
 python build_world.py ../build                 # 항구 + 던전 10개 + 팩 전체 (약 10분)
 python build_world.py ../build --only d01,d02  # 일부 던전만
+python build_world.py ../build --keep ../work  # 만든 지형을 ../work 에 남겨 둠
+python build_world.py ../build --repack --keep ../work  # 스크립트·모델만 고쳤을 때: 지형은 그대로, 팩만 다시 묶기(몇 초)
 python rp_check.py ../build/packs/norse_rpg_rp # 리소스 팩 참조 검사
 ```
 

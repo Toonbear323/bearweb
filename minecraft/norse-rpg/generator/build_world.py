@@ -98,7 +98,7 @@ def world_info(world_data):
         "nrpg:home": "항구로 귀환", "nrpg:clearall": "모든 항로 개방", "nrpg:enh <0-10>": "손에 든 장비의 강화 단계를 지정",
         "nrpg:test <arena> [skill ...]": "허수아비를 상대로 보스 소환(스킬 시험)", "nrpg:status": "보스 전투 상태를 콘솔에 출력",
         "nrpg:reset": "모든 보스 방 초기화", "nrpg:kill <arena>": "그 방의 보스 처치", "nrpg:hurt <arena> <0-1>": "보스 체력을 비율만큼 깎음",
-        "nrpg:zones": "사냥터 몹 수", "nrpg:zonetest [dungeon]": "사냥터 몹 소환 시험"}
+        "nrpg:zones": "사냥터 몹 수", "nrpg:zonetest [dungeon]": "사냥터 몹 소환 시험", "nrpg:mobtest <x y z>": "모든 몹 종류 소환 시험"}
     return info
 
 

@@ -189,7 +189,8 @@ function cast(c, key) {
     try { c.ent.triggerEvent("nrpg:cast_end"); } catch (e) { }
     try { c.ent.setProperty("nrpg:anim", 0); } catch (e) { }
   });
-  if (TEST.on) log("cast " + c.bossId + "." + key + " (" + sk.kind + ") telegraphs=" + tgCount + " busy=" + busy);
+  // test log: count the decals really on the floor a few ticks in (most shapes are drawn by scheduled jobs)
+  if (TEST.on) c.at(3, () => log("cast " + c.bossId + "." + key + " (" + sk.kind + ") telegraphs=" + c.tgs.filter((s) => valid(s.ent)).length + "/" + Math.max(tgCount, c.tgs.length) + " busy=" + busy));
 }
 const ANIM = { beam: 3, radial: 3, slam: 2, ring: 4, cone: 5, strike: 1, rain: 1, charge: 6, leap: 7, pull: 4, wave: 2, sweep: 5, summon: 8, clone: 1 };
 

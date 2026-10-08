@@ -60,7 +60,7 @@ MOBS = {
     # D6 Utgard
     "giant_servant": ("minecraft:vindicator", "§7우트가르드 하인", {}, dict(resistance=0)),
     "giant_hunter": ("minecraft:pillager", "§7거인의 사냥꾼", {}, {}),
-    "illusionist": ("minecraft:evoker", "§5환영술사", {}, {}),
+    "illusionist": ("minecraft:evocation_illager", "§5환영술사", {}, {}),
     "frost_wraith": ("minecraft:stray", "§b서리 망령", dict(head="chainmail_helmet"), {}),
     "giant_hound": ("minecraft:ravager", "§8거인의 사냥개", {}, {}),
     # D7 Nidavellir
@@ -82,7 +82,7 @@ MOBS = {
     "corpse": ("minecraft:zombie", "§8나스트론드의 시체", dict(head="iron_helmet", chest="iron_chestplate", hand="iron_sword"), dict(resistance=1)),
     # D10 Asgard / Ragnarok
     "jotun_warrior": ("minecraft:vindicator", "§9요툰 전사", dict(), dict(resistance=1, strength=1)),
-    "jotun_mage": ("minecraft:evoker", "§5요툰 주술사", {}, dict(resistance=0)),
+    "jotun_mage": ("minecraft:evocation_illager", "§5요툰 주술사", {}, dict(resistance=0)),
     "storm_spirit": ("minecraft:breeze", "§b비프로스트 폭풍", {}, {}),
     "fenrir_pup": ("nrpg:fenrir_pup", "§8펜리르의 새끼", {}, dict(resistance=0)),
     "muspel_raider": ("minecraft:blaze", "§6무스펠 약탈자", {}, dict(strength=1)),

@@ -3,7 +3,7 @@ import { world, system, ItemStack, EnchantmentTypes } from "@minecraft/server";
 import { ActionFormData, MessageFormData } from "@minecraft/server-ui";
 import { OW, now, players, survivalish, valid, inBox, hdist, title, bar, sound, particle, showForm, tp, pget, pset, rand, pick, GameMode } from "./util.js";
 import { spawnMob, removeTagged, lastSpawnError } from "./mobs.js";
-import { DUNGEONS, ORDER, ZONES, SPAWN, WORLDS } from "./data.js";
+import { DUNGEONS, ORDER, ZONES, SPAWN, WORLDS, MOBS } from "./data.js";
 
 const TIER_KO = { beginner: "§a초급", mid: "§e중급", high: "§c상급" };
 const ARRIVAL = () => SPAWN.arrival;
@@ -545,6 +545,19 @@ export function rpgEvent(id, args, src) {
     }
     console.warn("[nrpg] zonetest spawned=" + ok + " failed=" + bad);
     removeTagged("nrpg_zonetest");
+    return;
+  }
+  if (id === "nrpg:mobtest") {
+    // nrpg:mobtest x y z: spawn every mob definition once there (checks the entity ids), then remove them
+    const loc = { x: Number(args[0]) + 0.5, y: Number(args[1]), z: Number(args[2]) + 0.5 };
+    const bad = [];
+    let ok = 0;
+    for (const key in MOBS) {
+      if (spawnMob(key, loc, ["nrpg_mobtest"], OW(), "high")) ok++;
+      else bad.push(key + " (" + lastSpawnError + ")");
+    }
+    console.warn("[nrpg] mobtest spawned=" + ok + " failed=" + bad.length + (bad.length ? " " + bad.join(", ") : ""));
+    removeTagged("nrpg_mobtest");
     return;
   }
   if (!p) { console.warn("[nrpg] no player for " + id); return; }

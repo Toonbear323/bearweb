@@ -1,0 +1,167 @@
+"""Game data: shop catalogue, sell list, dungeon rewards, custom gear (loot tables)."""
+
+# custom gear delivered through behaviour-pack loot tables:  id -> (item, display name, lore, [(enchant, level)])
+GEAR = {
+    "sword_plains": ("iron_sword", "§a초원의 검", ["§7폐허의 성채에서 벼려진 검"], [("sharpness", 2), ("unbreaking", 2)]),
+    "sword_flame": ("diamond_sword", "§c지옥불 검", ["§7불타는 협곡의 열기를 품은 검"],
+                    [("sharpness", 4), ("fire_aspect", 2), ("unbreaking", 3)]),
+    "sword_hero": ("netherite_sword", "§6§l용사의 검", ["§7모든 던전을 정복한 자의 검"],
+                   [("sharpness", 5), ("looting", 3), ("unbreaking", 3), ("mending", 1)]),
+    "bow_hunter": ("bow", "§a사냥꾼의 활", ["§7가볍고 빠른 활"], [("power", 3), ("unbreaking", 2)]),
+    "bow_storm": ("bow", "§b폭풍의 활", ["§7화살이 끝없이 쏟아진다"], [("power", 5), ("infinity", 1), ("flame", 1)]),
+    "axe_war": ("diamond_axe", "§c전쟁 도끼", ["§7묵직한 일격"], [("sharpness", 4), ("unbreaking", 3)]),
+    "trident_tide": ("trident", "§3해일의 삼지창", ["§7가라앉은 신전의 유물"], [("loyalty", 3), ("impaling", 4), ("unbreaking", 3)]),
+    "pick_miner": ("diamond_pickaxe", "§b광부의 곡괭이", ["§7수정 동굴의 광맥을 가른다"],
+                   [("efficiency", 4), ("fortune", 2), ("unbreaking", 3)]),
+    "helm_guard": ("diamond_helmet", "§b수호자의 투구", [], [("protection", 3), ("unbreaking", 3), ("respiration", 3)]),
+    "chest_guard": ("diamond_chestplate", "§b수호자의 흉갑", [], [("protection", 3), ("unbreaking", 3)]),
+    "legs_guard": ("diamond_leggings", "§b수호자의 각반", [], [("protection", 3), ("unbreaking", 3)]),
+    "boots_guard": ("diamond_boots", "§b수호자의 장화", [], [("protection", 3), ("unbreaking", 3), ("feather_falling", 4)]),
+    "helm_pharaoh": ("golden_helmet", "§6파라오의 왕관", ["§7피글린이 경계를 푼다"], [("protection", 4), ("unbreaking", 3)]),
+    "boots_wind": ("iron_boots", "§f바람의 장화", ["§7깃털처럼 가볍다"], [("feather_falling", 4), ("protection", 2), ("depth_strider", 3)]),
+    "book_mending": ("enchanted_book", None, [], [("mending", 1)]),
+    "book_sharp": ("enchanted_book", None, [], [("sharpness", 4)]),
+    "book_prot": ("enchanted_book", None, [], [("protection", 4)]),
+    "book_eff": ("enchanted_book", None, [], [("efficiency", 4)]),
+    "book_unb": ("enchanted_book", None, [], [("unbreaking", 3)]),
+    "book_fortune": ("enchanted_book", None, [], [("fortune", 3)]),
+}
+
+
+def G_(item, n=1, data=0):
+    return "give @s %s %d %d" % (item, n, data)
+
+
+def L_(gear):
+    return 'loot give @s loot "bear/%s"' % gear
+
+
+# shop -> list of (id, label, price, [commands run as the buyer])
+SHOPS = {
+    "weapon": [
+        ("w_stone_sword", "돌 검", 15, [G_("stone_sword")]),
+        ("w_iron_sword", "철 검", 60, [G_("iron_sword")]),
+        ("w_plains", "초원의 검\n§2날카로움 II", 160, [L_("sword_plains")]),
+        ("w_diamond_sword", "다이아몬드 검", 320, [G_("diamond_sword")]),
+        ("w_flame", "지옥불 검\n§4날카로움 IV 발화", 950, [L_("sword_flame")]),
+        ("w_hero", "용사의 검\n§6네더라이트", 3000, [L_("sword_hero")]),
+        ("w_axe", "철 도끼", 70, [G_("iron_axe")]),
+        ("w_war_axe", "전쟁 도끼\n§4날카로움 IV", 800, [L_("axe_war")]),
+        ("w_bow", "활", 50, [G_("bow")]),
+        ("w_hunter", "사냥꾼의 활\n§2힘 III", 350, [L_("bow_hunter")]),
+        ("w_storm", "폭풍의 활\n§3힘 V 무한", 1400, [L_("bow_storm")]),
+        ("w_arrow", "화살 32개", 20, [G_("arrow", 32)]),
+        ("w_crossbow", "쇠뇌", 90, [G_("crossbow")]),
+        ("w_trident", "해일의 삼지창\n§3충성 III", 1200, [L_("trident_tide")]),
+        ("w_shield", "방패", 40, [G_("shield")]),
+    ],
+    "armor": [
+        ("a_leather", "가죽 갑옷 세트", 40, [G_("leather_helmet"), G_("leather_chestplate"), G_("leather_leggings"),
+                                    G_("leather_boots")]),
+        ("a_chain", "사슬 갑옷 세트", 130, [G_("chainmail_helmet"), G_("chainmail_chestplate"),
+                                    G_("chainmail_leggings"), G_("chainmail_boots")]),
+        ("a_iron_helm", "철 투구", 70, [G_("iron_helmet")]),
+        ("a_iron_chest", "철 흉갑", 110, [G_("iron_chestplate")]),
+        ("a_iron_legs", "철 각반", 95, [G_("iron_leggings")]),
+        ("a_iron_boots", "철 장화", 60, [G_("iron_boots")]),
+        ("a_dia_helm", "다이아 투구", 280, [G_("diamond_helmet")]),
+        ("a_dia_chest", "다이아 흉갑", 450, [G_("diamond_chestplate")]),
+        ("a_dia_legs", "다이아 각반", 390, [G_("diamond_leggings")]),
+        ("a_dia_boots", "다이아 장화", 240, [G_("diamond_boots")]),
+        ("a_guard", "수호자 세트\n§3보호 III", 2800, [L_("helm_guard"), L_("chest_guard"), L_("legs_guard"),
+                                               L_("boots_guard")]),
+        ("a_gold_helm", "황금 투구\n§6피글린 중립", 60, [G_("golden_helmet")]),
+        ("a_pharaoh", "파라오의 왕관\n§6보호 IV", 700, [L_("helm_pharaoh")]),
+        ("a_wind", "바람의 장화\n§7가벼운 착지 IV", 420, [L_("boots_wind")]),
+        ("a_turtle", "거북 등딱지", 220, [G_("turtle_helmet")]),
+    ],
+    "tool": [
+        ("t_stone_pick", "돌 곡괭이", 10, [G_("stone_pickaxe")]),
+        ("t_iron_pick", "철 곡괭이", 55, [G_("iron_pickaxe")]),
+        ("t_dia_pick", "다이아 곡괭이", 300, [G_("diamond_pickaxe")]),
+        ("t_miner", "광부의 곡괭이\n§3효율 IV 행운 II", 1100, [L_("pick_miner")]),
+        ("t_iron_axe", "철 도끼", 55, [G_("iron_axe")]),
+        ("t_iron_shovel", "철 삽", 30, [G_("iron_shovel")]),
+        ("t_iron_hoe", "철 괭이", 30, [G_("iron_hoe")]),
+        ("t_shears", "가위", 25, [G_("shears")]),
+        ("t_torch", "횃불 32개", 12, [G_("torch", 32)]),
+        ("t_bucket", "물 양동이", 30, [G_("water_bucket")]),
+        ("t_bed", "침대", 20, [G_("bed", 1, 14)]),
+        ("t_boat", "보트", 12, [G_("oak_boat")]),
+        ("t_planks", "참나무 판자 64개", 16, [G_("oak_planks", 64)]),
+        ("t_stone", "조약돌 64개", 14, [G_("cobblestone", 64)]),
+        ("t_glass", "유리 32개", 20, [G_("glass", 32)]),
+    ],
+    "magic": [
+        ("m_heal", "치유의 물약", 30, [G_("potion", 1, 21)]),
+        ("m_heal2", "치유의 물약 II", 60, [G_("potion", 1, 22)]),
+        ("m_regen", "재생의 물약", 60, [G_("potion", 1, 28)]),
+        ("m_swift", "신속의 물약", 40, [G_("potion", 1, 15)]),
+        ("m_strength", "힘의 물약", 90, [G_("potion", 1, 32)]),
+        ("m_fire", "화염 저항 물약\n§c지옥 필수", 60, [G_("potion", 1, 13)]),
+        ("m_water", "수중 호흡 물약\n§3바다 필수", 50, [G_("potion", 1, 20)]),
+        ("m_night", "야간 투시 물약\n§7동굴 추천", 30, [G_("potion", 1, 6)]),
+        ("m_gapple", "황금 사과", 80, [G_("golden_apple")]),
+        ("m_egapple", "마법이 부여된\n황금 사과", 700, [G_("enchanted_golden_apple")]),
+        ("m_pearl", "엔더 진주 4개", 60, [G_("ender_pearl", 4)]),
+        ("m_totem", "불사의 토템", 900, [G_("totem_of_undying")]),
+        ("m_xp", "경험치 병 16개", 60, [G_("experience_bottle", 16)]),
+        ("m_mending", "마법 책: 수선", 600, [L_("book_mending")]),
+        ("m_bsharp", "마법 책:\n날카로움 IV", 400, [L_("book_sharp")]),
+        ("m_bprot", "마법 책:\n보호 IV", 400, [L_("book_prot")]),
+        ("m_beff", "마법 책:\n효율 IV", 300, [L_("book_eff")]),
+        ("m_bunb", "마법 책:\n내구성 III", 300, [L_("book_unb")]),
+    ],
+    "food": [
+        ("f_bread", "빵 8개", 8, [G_("bread", 8)]),
+        ("f_beef", "스테이크 8개", 24, [G_("cooked_beef", 8)]),
+        ("f_pork", "익힌 돼지고기 8개", 24, [G_("cooked_porkchop", 8)]),
+        ("f_chicken", "익힌 닭고기 8개", 18, [G_("cooked_chicken", 8)]),
+        ("f_cod", "익힌 대구 8개", 14, [G_("cooked_cod", 8)]),
+        ("f_gcarrot", "황금 당근 8개", 48, [G_("golden_carrot", 8)]),
+        ("f_pie", "호박 파이 4개", 16, [G_("pumpkin_pie", 4)]),
+        ("f_cake", "케이크", 18, [G_("cake")]),
+        ("f_apple", "사과 8개", 10, [G_("apple", 8)]),
+        ("f_cookie", "쿠키 16개", 10, [G_("cookie", 16)]),
+        ("f_melon", "수박 조각 16개", 8, [G_("melon_slice", 16)]),
+        ("f_milk", "우유\n§7상태 이상 해제", 15, [G_("milk_bucket")]),
+    ],
+}
+
+# guild buy-back counter: (id, label, item, count, gold)
+SELLS = [
+    ("s_flesh", "썩은 살점 8개", "rotten_flesh", 8, 4),
+    ("s_bone", "뼈 8개", "bone", 8, 8),
+    ("s_string", "실 8개", "string", 8, 8),
+    ("s_eye", "거미 눈 4개", "spider_eye", 4, 8),
+    ("s_powder", "화약 4개", "gunpowder", 4, 12),
+    ("s_arrow", "화살 16개", "arrow", 16, 4),
+    ("s_pearl", "엔더 진주 1개", "ender_pearl", 1, 12),
+    ("s_shard", "프리즈머린 조각 8개", "prismarine_shard", 8, 16),
+    ("s_rod", "블레이즈 막대 2개", "blaze_rod", 2, 20),
+    ("s_cream", "마그마 크림 2개", "magma_cream", 2, 14),
+    ("s_gold", "금 주괴 4개", "gold_ingot", 4, 24),
+    ("s_iron", "철 주괴 8개", "iron_ingot", 8, 24),
+    ("s_coal", "석탄 16개", "coal", 16, 12),
+    ("s_emerald", "에메랄드 1개", "emerald", 1, 15),
+    ("s_diamond", "다이아몬드 1개", "diamond", 1, 60),
+    ("s_wheat", "밀 16개", "wheat", 16, 8),
+]
+
+# dungeon id -> (korean name, clear reward gold, recommended gear text, colour code)
+DUNGEONS = {
+    "plains": ("초원 던전 · 폐허의 성채", 150, "권장: 돌~철 장비", "§a"),
+    "cave": ("동굴 던전 · 수정 동굴", 300, "권장: 철 장비, 횃불", "§7"),
+    "desert": ("사막 던전 · 태양왕의 피라미드", 450, "권장: 철 장비, 활", "§e"),
+    "ocean": ("바다 던전 · 가라앉은 신전", 650, "권장: 수중 호흡 물약", "§3"),
+    "hell": ("지옥 던전 · 불타는 협곡", 900, "권장: 다이아 장비, 화염 저항", "§c"),
+    "fortress": ("네더 요새 · 위더의 성채", 1300, "권장: 다이아 장비, 활", "§4"),
+    "bastion": ("피글린 요새 · 황금 보루", 1600, "권장: 최고급 장비", "§6"),
+}
+ENCH_ID = {"protection": 0, "fire_protection": 1, "feather_falling": 2, "blast_protection": 3,
+           "projectile_protection": 4, "thorns": 5, "respiration": 6, "depth_strider": 7, "aqua_affinity": 8,
+           "sharpness": 9, "smite": 10, "bane_of_arthropods": 11, "knockback": 12, "fire_aspect": 13, "looting": 14,
+           "efficiency": 15, "silk_touch": 16, "unbreaking": 17, "fortune": 18, "power": 19, "punch": 20, "flame": 21,
+           "infinity": 22, "luck_of_the_sea": 23, "lure": 24, "frost_walker": 25, "mending": 26, "impaling": 29,
+           "riptide": 30, "loyalty": 31, "channeling": 32, "multishot": 33, "piercing": 34, "quick_charge": 35,
+           "soul_speed": 36, "swift_sneak": 37}

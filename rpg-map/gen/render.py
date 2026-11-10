@@ -259,7 +259,12 @@ def _flags():
                                    "hook", "petals", "lichen", "vine", "carpet", "pressure_plate", "snow_layer",
                                    "rail", "wire")) and "block" not in name:
             thin[i] = True
-    return thin, emis, clear
+    panel = np.zeros(n, bool)
+    for i, (name, st) in enumerate(REG.entries):
+        if any(k in name for k in ("trapdoor", "door", "wall_sign", "wall_banner", "ladder", "button", "lever",
+                                   "vine", "lichen", "hanging_sign", "tripwire")):
+            panel[i] = True
+    return thin, emis, clear, panel
 
 
 def _rot(a, view):
@@ -279,7 +284,7 @@ def iso(world, box, view=0, S=4, cut_y=None, bg=(24, 26, 34), out=None, water_al
     A = _rot(A, view)
     nx, nz, ny = A.shape
     cols = color_table()
-    thin, emis, clear = _flags()
+    thin, emis, clear, panel = _flags()
     H = S + S // 4
     W_img = (nx + nz) * S + 2
     H_img = (nx + nz) * S // 2 + ny * H + 4
@@ -337,11 +342,13 @@ def iso(world, box, view=0, S=4, cut_y=None, bg=(24, 26, 34), out=None, water_al
         by = (xs + zs) * S // 2 - (ys + 1) * H + oy
         depth = ((xs + zs + ys).astype(np.int32) * 4 + fbias)
         t = thin[ids]
+        pn = panel[ids]
         for (dx, dy) in fp:
+            keep = ~t | (abs(dx) <= S // 2)
             if fp is top_fp:
-                keep = ~t | ((abs(dx) <= S // 2) & True)
+                keep = keep & ~pn
             else:
-                keep = ~t | (abs(dx) <= S // 2)
+                keep = keep & (~pn | ((abs(dx) <= max(1, S // 4)) & (dy > S // 2 + 1)))
             px = bx + dx
             py = by + dy
             ok = keep & (px >= 0) & (px < W_img) & (py >= 0) & (py < H_img)

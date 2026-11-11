@@ -36,6 +36,32 @@ def tunnel(w, pts, r, rng, flat=True):
                 w.fill(int(x) - 1, int(round(y)), int(z) - 1, int(x) + 1, int(round(y)) + 2, int(z) + 1, AIR)
 
 
+_CLUTTER = None
+
+
+def clear_route(w, pts):
+    """Remove walk-blocking decorations (never terrain) from a 3-wide corridor along the polyline."""
+    global _CLUTTER
+    from .core import REG
+    if _CLUTTER is None or len(_CLUTTER) != len(REG.entries):
+        _CLUTTER = [any(k in n for k in ("pointed_dripstone", "azalea", "dripleaf", "web", "amethyst_cluster",
+                                         "amethyst_bud", "cave_vines", "sculk_sensor")) and n not in (
+            "azalea_leaves", "azalea_leaves_flowered") for n, _ in REG.entries]
+    for (a, b_) in zip(pts[:-1], pts[1:]):
+        n = int(max(abs(b_[0] - a[0]), abs(b_[2] - a[2]), 1))
+        for i in range(n + 1):
+            t = i / n
+            x = int(round(a[0] + (b_[0] - a[0]) * t))
+            z = int(round(a[2] + (b_[2] - a[2]) * t))
+            yc = int(round(a[1] + (b_[1] - a[1]) * t))
+            for dx in (-1, 0, 1):
+                for dz in (-1, 0, 1):
+                    for y in range(yc - 3, yc + 5):
+                        bid_ = w.get(x + dx, y, z + dz)
+                        if bid_ and _CLUTTER[bid_]:
+                            w.set(x + dx, y, z + dz, AIR)
+
+
 def skin(w, box, floor=None, ceil=None, wall=None, p_floor=1.0, p_ceil=0.5, p_wall=0.4, base=None):
     """Re-texture the rock touching air inside box.  base = ids that may be replaced."""
     s = w._clip(*box)
@@ -63,6 +89,26 @@ def skin(w, box, floor=None, ceil=None, wall=None, p_floor=1.0, p_ceil=0.5, p_wa
             v[m] = blk.sample(rng, int(m.sum()))
         else:
             v[m] = blk
+
+
+def pond(w, cx, cz, rx, rz, y_top, y_bot, rim):
+    """Fill a basin with still water and wall in every side / bottom opening so it can never flow."""
+    R = int(max(rx, rz)) + 3
+    for dx in range(-R, R + 1):
+        for dz in range(-R, R + 1):
+            d_in = (dx / rx) ** 2 + (dz / rz) ** 2
+            d_out = (dx / (rx + 1.6)) ** 2 + (dz / (rz + 1.6)) ** 2
+            x, z = cx + dx, cz + dz
+            if d_in <= 1.0:
+                if w.get(x, y_bot - 1, z) == 0:
+                    w.set(x, y_bot - 1, z, rim)
+                for y in range(y_bot, y_top + 1):
+                    if w.get(x, y, z) == 0:
+                        w.set(x, y, z, bl.WATER)
+            elif d_out <= 1.0:
+                for y in range(y_bot, y_top + 1):
+                    if w.get(x, y, z) == 0:
+                        w.set(x, y, z, rim)
 
 
 def floor_cells(w, box, n, rng):
@@ -205,20 +251,22 @@ def build(w, T, log=print):
     w.set(mx - 3, g + 1, hz + 4, bl.lantern())
     # ------------------------------------------------------------------ lush grotto
     L = (mx + 24, 68, mz - 64)                    # centre
-    tunnel(w, [(mx + 2, g + 1, hz - 4), (mx + 8, g - 3, hz - 10), (mx + 12, 73, mz - 58), (L[0] - 14, 69, L[2])],
-           2.2, rng)
+    # gentle switch-back descent (never steeper than one block per two) from the hub to the grotto
+    T1 = [(mx - 4, g + 1, hz - 5), (mx - 12, g - 4, hz - 12), (mx - 10, g - 9, hz - 22), (mx, g - 13, hz - 24),
+          (L[0] - 15, 69, L[2] - 2)]
+    tunnel(w, T1, 2.2, rng)
     w.set(mx - 4, g, hz - 4, bl.block("cobblestone"))
     w.set(mx - 4, g + 1, hz - 4, 0)
     dk.sign(w, mx - 4, g + 1, hz - 4, "S", "§l동쪽 굴 아래로\n§r이끼 동굴을 지나\n수정 동굴로", standing=True, wood="spruce")
     blob(w, L[0], L[1] + 5, L[2], 17, 8, 14, rng, n=9)
     w.ellipsoid(L[0], L[1] - 1, L[2], 15, 2.5, 12, AIR)
     # pools
-    for (px, pz, pr) in ((L[0] - 5, L[2] + 4, 4.5), (L[0] + 8, L[2] - 5, 3.5)):
+    pools = ((L[0] - 5, L[2] + 5, 4.5), (L[0] + 3, L[2] + 8, 3.5))
+    for (px, pz, pr) in pools:
         w.ellipsoid(px, L[1] - 3, pz, pr, 2.5, pr, AIR)
     lbox = (L[0] - 22, L[1] - 8, L[2] - 20, L[0] + 22, L[1] + 18, L[2] + 20)
-    s = w._clip(lbox[0], L[1] - 8, lbox[2], lbox[3], L[1] - 3, lbox[5])
-    v = w.b[s]
-    v[v == 0] = bl.WATER
+    for (px, pz, pr) in pools:               # contained pools, water surface one below the cavern floor
+        pond(w, px, pz, pr + 1.0, pr + 1.0, L[1] - 4, L[1] - 7, B("clay"))
     skin(w, lbox, floor=Mix((B("moss_block"), 8), (B("clay"), 1), (B("dirt_with_roots"), 1), (B("grass_block"), 1)),
          ceil=Mix((B("moss_block"), 3), (B("dirt_with_roots"), 2), (stone, 4)),
          wall=Mix((B("moss_block"), 3), (stone, 3), (B("clay"), 0.5)), p_floor=0.95, p_ceil=0.6, p_wall=0.5,
@@ -276,8 +324,8 @@ def build(w, T, log=print):
     # lily pads + dripleaf on the pools
     for _ in range(30):
         x, z = L[0] + int(rng.integers(-14, 15)), L[2] + int(rng.integers(-12, 13))
-        if w.get(x, L[1] - 3, z) == bl.WATER and w.get(x, L[1] - 2, z) == 0:
-            w.set(x, L[1] - 2, z, B("waterlily"))
+        if w.get(x, L[1] - 4, z) == bl.WATER and w.get(x, L[1] - 3, z) == 0:
+            w.set(x, L[1] - 3, z, B("waterlily"))
     dk.spawner(w, L[0] + 13, L[1] - 1, L[2] + 8, "zombie")
     w.ellipsoid(L[0] + 13, L[1] + 1, L[2] + 8, 3.5, 2.5, 3.5, AIR)
     dk.spawner(w, L[0] + 13, L[1] - 1, L[2] + 8, "zombie")
@@ -293,13 +341,12 @@ def build(w, T, log=print):
         dk.chest(w, cs[0][0], cs[0][1], cs[0][2], "S", 2, rng)
     # ------------------------------------------------------------------ dripstone cavern
     Dc = (mx + 58, 56, mz - 80)
-    tunnel(w, [(L[0] + 14, L[1] - 1, L[2] - 3), (L[0] + 22, 64, L[2] - 8), (Dc[0] - 16, 58, Dc[2] + 4)], 2.2, rng)
+    T2 = [(L[0] + 13, L[1] - 1, L[2] - 3), (L[0] + 10, 62, L[2] - 11), (Dc[0] - 16, 57, Dc[2] + 2)]
+    tunnel(w, T2, 2.2, rng)
     blob(w, Dc[0], Dc[1] + 6, Dc[2], 18, 10, 15, rng, n=9)
     w.ellipsoid(Dc[0], Dc[1] - 1, Dc[2], 16, 4, 13, AIR)
     dbox = (Dc[0] - 24, Dc[1] - 8, Dc[2] - 21, Dc[0] + 24, Dc[1] + 22, Dc[2] + 21)
-    s = w._clip(dbox[0], Dc[1] - 8, dbox[2], dbox[3], Dc[1] - 3, dbox[5])
-    v = w.b[s]
-    v[v == 0] = bl.WATER
+    pond(w, Dc[0], Dc[2], 17.5, 14.5, Dc[1] - 3, Dc[1] - 8, B("dripstone_block"))
     skin(w, dbox, floor=Mix((B("dripstone_block"), 4), (stone, 4), (B("gravel"), 1), (B("calcite"), 1)),
          ceil=Mix((B("dripstone_block"), 5), (stone, 4)), wall=Mix((B("dripstone_block"), 2), (stone, 5),
                                                                    (B("copper_ore"), 0.4), (B("tuff"), 1)),
@@ -349,8 +396,9 @@ def build(w, T, log=print):
     # ------------------------------------------------------------------ amethyst geode
     Gc = (mx + 74, 50, mz - 46)
     R = 14
-    tunnel(w, [(Dc[0] + 16, Dc[1] - 1, Dc[2] + 6), (Dc[0] + 19, 50, Dc[2] + 14), (Gc[0], 44, Gc[2] - R - 5)], 2.0,
-           rng)
+    T3 = [(Dc[0] + 16, Dc[1] - 1, Dc[2] + 6), (Dc[0] + 21, Dc[1] - 1, Dc[2] + 7), (Dc[0] + 28, 50, Dc[2] + 12),
+          (Gc[0] + 4, 46, Gc[2] - R - 5), (Gc[0], 44, Gc[2] - R - 2)]
+    tunnel(w, T3, 2.0, rng)
     w.sphere(Gc[0], Gc[1], Gc[2], R + 2.5, B("smooth_basalt"), only=rockset | {AIR})
     w.sphere(Gc[0], Gc[1], Gc[2], R + 1.5, B("calcite"))
     w.sphere(Gc[0], Gc[1], Gc[2], R + 0.5, Mix((B("amethyst_block"), 12), (B("budding_amethyst"), 1)))
@@ -495,6 +543,9 @@ def build(w, T, log=print):
     dk.exit_pad(w, vx0 + 6, SY + 1, vz1 - 1, None)
     w.set(vx1, SY + 5, vz0, bl.lantern(True, soul=True))
     w.set(vx1, SY + 5, vz1, bl.lantern(True, soul=True))
+    # keep the main route free of stalagmites / bushes
+    route = T1 + [(L[0], L[1], L[2])] + T2 + [(Dc[0] - 16, Dc[1] - 1, Dc[2] + 4), (Dc[0] + 16, Dc[1] - 1, Dc[2] + 4)] + T3
+    clear_route(w, route)
     # registry
     dk.warp("cave", 0, mx + 0.5, g + 1, mz + 5.5, (mx, g + 2, mz - 10))
     dk.zone(0, mx - 10, 15, mz - 104, mx + 96, 100, mz + 10)

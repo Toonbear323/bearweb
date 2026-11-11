@@ -6,6 +6,8 @@ import os
 import sys
 import time
 
+import numpy as np
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
@@ -17,6 +19,7 @@ from gen.layout import *  # noqa: E402,F401,F403
 NAME = "베어 RPG V1"
 OUT = os.path.join(HERE, "out")
 MCWORLD = os.path.join(HERE, "BearRPG_V1.mcworld")
+SEEDS = {}        # per-area RNG seed overrides (each area draws from its own stream)
 
 
 def log(*a):
@@ -30,32 +33,47 @@ def build():
     terrain.voxelize(w, T, log=log)
     terrain.ores(w, T, log=log)
     log("town")
+    w.rng = np.random.default_rng(SEEDS.get("town", 101))
     hub.build_streets(w)
     hub.build_walls(w, T)
     hub.rotunda(w)
     hub.plaza_decor(w)
     town.build_town(w, T, log=log)
     log("plots")
+    w.rng = np.random.default_rng(SEEDS.get("plots", 102))
     plots.build_plots(w, T, log=log)
     log("dungeon: plains")
+    w.rng = np.random.default_rng(SEEDS.get("plains", 103))
     d_plains.build(w, T, log=log)
     log("dungeon: desert")
+    w.rng = np.random.default_rng(SEEDS.get("desert", 104))
     d_desert.build(w, T, log=log)
     log("dungeon: cave")
+    w.rng = np.random.default_rng(SEEDS.get("cave", 105))
     d_cave.build(w, T, log=log)
     log("dungeon: ocean")
+    w.rng = np.random.default_rng(SEEDS.get("ocean", 106))
     d_ocean.build(w, T, log=log)
     log("hell gate + roads")
+    w.rng = np.random.default_rng(SEEDS.get("gate", 107))
     nether.hell_gate_overworld(w, T, log=log)
     extras.build(w, T, log=log)
     log("vegetation")
+    w.rng = np.random.default_rng(SEEDS.get("veg", 108))
     terrain.vegetation(w, T, log=log)
     log("walls connected: %d" % kit.connect_walls(w))
+    # the outermost ring must match the surrounding flat ocean (sand top at y=42, water above)
+    edge_ok = all(int(T.h[i, j]) == 42 for i in (0, w.sx - 1) for j in range(w.sz)) and all(
+        int(T.h[i, j]) == 42 for j in (0, w.sz - 1) for i in range(w.sx))
+    log("region border matches flat ocean: %s" % edge_ok)
     log("nether")
     n = nether.make_world(log=log)
+    n.rng = np.random.default_rng(SEEDS.get("nether", 109))
     nether.hub(n, log=log)
     nether.canyon(n, log=log)
+    n.rng = np.random.default_rng(SEEDS.get("fort", 110))
     n_fort.build(n, log=log)
+    n.rng = np.random.default_rng(SEEDS.get("bast", 111))
     n_bast.build(n, log=log)
     log("nether walls connected: %d" % kit.connect_walls(n))
     n.shift(NOFF, 0)
@@ -71,6 +89,8 @@ def main():
     for pr in problems[:40]:
         log("  CHECK:", pr)
     log("consistency problems: %d" % len(problems))
+    missing = check.coverage([w, n])
+    log("unwired functions: %s" % (missing or "none"))
     for wd in (w, n):       # never export a block entity whose block was replaced
         for k in [k for k, d in wd.be.items() if wd.get(*k) == 0]:
             del wd.be[k]

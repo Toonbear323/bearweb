@@ -62,16 +62,19 @@ def shop_interior(F, info, kind):
             F.log(2, y, z, frame)
             F.log(W - 3, y, z, frame)
     extra = len(items) - len(slots)
-    if extra > 0:    # central island with slots on both long sides
-        F.fill(7, 2, 6, 9, 4, 10, panel)
-        F.fill(7, 5, 6, 9, 5, 10, bl.slab(pal["floor"]))
-        for z in (6, 8, 10):
-            slots.append((7, z, "W"))
-            slots.append((9, z, "E"))
-        for z in (7, 9):
+    island = []
+    if extra > 0:    # central island: west-side and east-side slots alternate so each has its own command block
+        F.fill(7, 2, 5, 9, 4, 11, panel)
+        F.fill(7, 5, 5, 9, 5, 11, bl.slab(pal["floor"]))
+        island = [(7, 6, "W"), (9, 7, "E"), (7, 8, "W"), (9, 9, "E"), (7, 10, "W")]
+        slots += island
+        for z in (5, 7, 9, 11):
             for y in (2, 3, 4):
                 F.log(7, y, z, frame)
+        for z in (5, 6, 8, 10, 11):
+            for y in (2, 3, 4):
                 F.log(9, y, z, frame)
+    assert len(items) <= len(slots), kind
     decos = {"weapon": [B("smithing_table"), bl.barrel("U"), B("polished_andesite")],
              "armor": [B("iron_block"), bl.barrel("U"), B("smithing_table")],
              "tool": [bl.barrel("U"), B("crafting_table"), B("composter")],
@@ -83,7 +86,7 @@ def shop_interior(F, info, kind):
         text = "%s%s\n§6%d 골드" % (bold, label.replace("\n", "§r\n"), price)
         sale_slot(F, x, 3, z, d, text, "function bear/shop/" + sid, panel, deco=decos[int(rng.integers(0, len(decos)))])
         dx, dz = DIRS[d]
-        if (x, z) not in ((7, 6), (7, 8), (7, 10), (9, 6), (9, 8), (9, 10)):
+        if (x, z, d) not in island:
             F.set(x, 5, z, B("glowstone") if kind != "magic" else B("sea_lantern"))
     # floor runner + lights
     col = {"weapon": "red", "armor": "blue", "tool": "green", "magic": "purple", "food": "orange"}[kind]
@@ -192,11 +195,11 @@ def forge(F, W):
 
 
 def magic_tower(F, cx, cz):
-    """Round wizard tower fused to the corner of the magic shop."""
-    r = 4.0
+    """Slim round wizard tower beside the magic shop (door on the local east side)."""
+    r = 3.0
     wallm = Mix((bl.block("deepslate_brick"), 5), (bl.block("polished_deepslate"), 2),
                 (bl.block("cobbled_deepslate"), 2), (B("cracked_deepslate_bricks"), 1))
-    h = 19
+    h = 21
     for y in range(-3, 1):
         for (dx, dz) in kit.disc_cells(r):
             F.set(cx + dx, y, cz + dz, wallm)
@@ -204,37 +207,45 @@ def magic_tower(F, cx, cz):
         for (dx, dz) in kit.disc_cells(r):
             d = math.hypot(dx, dz)
             F.set(cx + dx, y, cz + dz, wallm if d > r - 1.0 else AIR)
-    for fyy in (1, 6, 11, 16):
+    floors = (1, 6, 11, 16)
+    for fyy in floors:
         for (dx, dz) in kit.disc_cells(r - 1.0):
             F.set(cx + dx, fyy, cz + dz, bl.planks("dark_oak"))
-    for y in (8, 9, 13, 14, 18):
-        for (dx, dz) in ((4, 0), (0, 4), (0, -4)):
+    for y in (8, 9, 13, 14, 18, 19):
+        for (dx, dz) in ((0, 3), (0, -3), (-3, 0)):
             F.set(cx + dx, y, cz + dz, B("purple_stained_glass_pane"))
     for (dx, dz) in kit._ring(r + 1.0):
         F.stairs(cx + dx, h, cz + dz, "deepslate_tile", kit._inward(dx, dz), top=True)
     kit.cone_roof(F, cx, cz, h + 1, r, "purpur", steep=2,
                   spire=[B("amethyst_block"), B("amethyst_cluster", block_face="up")])
-    # ladder shaft + rooms
-    for y in range(2, 17):
-        F.set(cx, y, cz + 2, bl.ladder(F.d("N")))
-    for fyy in (6, 11, 16):
-        F.set(cx, fyy, cz + 2, bl.ladder(F.d("N")))
-    F.set(cx, 17, cz, B("enchanting_table"))
-    for (dx, dz) in ((-2, -1), (-2, 0), (-2, 1), (2, -1), (2, 0), (2, 1), (-1, -2), (0, -2), (1, -2)):
+    # door (east) with a step and lantern
+    F.set(cx + 3, 2, cz, AIR)
+    F.set(cx + 3, 3, cz, AIR)
+    F.door(cx + 3, 2, cz, "dark_oak", "W")
+    F.stairs(cx + 4, 1, cz, "deepslate_brick", "W")
+    F.lantern(cx + 4, 4, cz - 1, soul=True) if False else F.torch(cx + 4, 4, cz, attach="W", kind="soul_torch")
+    F.sign(cx + 4, 3, cz + 1, "E", "§5§l마법사의 탑", wood="crimson") if False else None
+    # ladder shaft on the west inner wall
+    for y in range(2, 18):
+        F.set(cx - 2, y, cz, bl.ladder(F.d("E")))
+    # rooms: brewery, study, crystal room, enchanting loft
+    F.set(cx, 2, cz - 2, B("brewing_stand"))
+    F.set(cx, 2, cz + 2, B("cauldron", cauldron_liquid="water", fill_level=6))
+    F.lantern(cx, 5, cz, hanging=True, soul=True)
+    F.set(cx, 7, cz - 2, B("lectern", cardinal_direction=card(F, "S")))
+    F.set(cx + 1, 7, cz + 2, B("bookshelf"))
+    F.set(cx, 7, cz + 2, B("bookshelf"))
+    F.lantern(cx, 10, cz, hanging=True, soul=True)
+    F.set(cx, 12, cz + 2, B("amethyst_block"))
+    F.set(cx, 13, cz + 2, B("amethyst_cluster", block_face="up"))
+    F.set(cx, 12, cz - 2, B("amethyst_block"))
+    F.set(cx, 13, cz - 2, B("amethyst_cluster", block_face="up"))
+    F.lantern(cx, 15, cz, hanging=True, soul=True)
+    F.set(cx + 1, 17, cz, B("enchanting_table"))
+    for (dx, dz) in ((0, -2), (1, -2), (0, 2), (1, 2), (2, -1), (2, 1)):
         F.set(cx + dx, 17, cz + dz, B("bookshelf"))
         F.set(cx + dx, 18, cz + dz, B("bookshelf"))
-    F.lantern(cx, 19, cz, hanging=True, soul=True)
-    F.set(cx - 1, 12, cz - 1, B("brewing_stand"))
-    F.set(cx + 1, 12, cz - 1, B("cauldron", cauldron_liquid="water", fill_level=4))
-    F.set(cx - 2, 12, cz, B("amethyst_block"))
-    F.set(cx - 2, 13, cz, B("amethyst_cluster", block_face="up"))
-    F.lantern(cx, 15, cz, hanging=True, soul=True)
-    F.set(cx + 1, 7, cz - 1, B("lectern", cardinal_direction=card(F, "S")))
-    F.set(cx - 1, 7, cz - 2, B("bookshelf"))
-    F.lantern(cx, 10, cz, hanging=True, soul=True)
-    F.lantern(cx, 5, cz, hanging=True, soul=True)
-    F.set(cx - 2, 2, cz, B("cauldron", cauldron_liquid="water", fill_level=6))
-    F.set(cx + 1, 2, cz - 2, B("brewing_stand"))
+    F.lantern(cx, 20, cz, hanging=True, soul=True)
 
 
 def shop(w, x, z, face, kind):
@@ -255,13 +266,7 @@ def shop(w, x, z, face, kind):
         F.set(-1, 2, 8, AIR)
         F.set(-1, 3, 8, AIR)
     elif kind == "magic":
-        magic_tower(F, W + 1, 3)
-        for y in (2, 3):
-            F.set(W - 1, y, 3, AIR)
-            F.set(W - 2, y, 3, AIR)
-            F.set(W - 3, y, 3, AIR)
-            F.set(W, y, 3, AIR)
-        F.set(W - 3, 4, 3, bl.planks("crimson"))
+        magic_tower(F, W + 2, -1)
     elif kind == "food":
         # striped awning + street tables
         for xx in range(1, W - 1):
@@ -509,11 +514,20 @@ def guild_hall(w, x, z, face):
         sale_slot(F, xx, 3, 2, "S", text, "function bear/sell/" + sid, panel, deco=bl.barrel("S"))
         F.set(xx, 5, 2, B("glowstone"))
     left = SELLS[len(xs):]
-    for i, (sid, label, item, cnt, gold) in enumerate(left):
-        zz = 5 + 2 * i
-        F.fill(W - 3, 2, zz - 1, W - 3, 5, zz + 1, panel)
-        sale_slot(F, W - 3, 3, zz, "W", sell_text(label, gold), "function bear/sell/" + sid,
-                  panel, deco=bl.barrel("W"))
+    # island counter in the hall for the remaining items (slots on both long sides)
+    F.fill(14, 2, 7, 16, 4, 15, panel)
+    F.fill(14, 5, 7, 16, 5, 15, bl.slab("dark_oak"))
+    isl = [(14, 9, "W"), (16, 8, "E"), (14, 11, "W"), (16, 10, "E"), (14, 13, "W"), (16, 12, "E")]
+    for (sid, label, item, cnt, gold), (ix, iz, d_) in zip(left, isl):
+        sale_slot(F, ix, 3, iz, d_, sell_text(label, gold), "function bear/sell/" + sid, panel,
+                  deco=bl.barrel(F.d(d_)))
+    for zz in (7, 8, 10, 12, 14, 15):
+        for y in (2, 3, 4):
+            F.log(14, y, zz, "dark_oak")
+    for zz in (7, 9, 11, 13, 14, 15):
+        for y in (2, 3, 4):
+            F.log(16, y, zz, "dark_oak")
+    assert len(left) <= len(isl)
     F.sign(16, 5, 3, "S", "§6§l전리품 매입소\n§r버튼을 누르면\n판매됩니다", wood="dark_oak", glow=True)
     # quest board on the west wall
     board = [("§l§n의뢰 게시판", "§r던전을 정복하고\n보상을 받으세요")]
@@ -533,7 +547,7 @@ def guild_hall(w, x, z, face):
                 F.sign(1, row, zz, "E", board[k][0] + "\n" + board[k][1], wood="birch")
                 k += 1
     # lounge
-    for (tx, tz) in ((7, 9), (13, 9), (19, 9), (7, 14), (13, 14)):
+    for (tx, tz) in ((7, 9), (22, 9), (7, 14), (26, 12)):
         kit.table(F, tx, 2, tz, "dark_oak")
         F.stairs(tx - 1, 2, tz, "spruce", "W")
         F.stairs(tx + 1, 2, tz, "spruce", "E")
@@ -754,7 +768,7 @@ def _ell(F, cx, cy, cz, rx, ry, rz, b):
 
 def bear_statue(F, x, y, z):
     """Seated bear mascot facing local south, ~11 blocks tall on a plinth."""
-    fur = Mix((B("brown_terracotta"), 5), (B("brown_concrete_powder"), 2), (B("brown_wool"), 1))
+    fur = Mix((B("brown_terracotta"), 6), (B("brown_wool"), 2))
     tan = B("yellow_terracotta") if False else B("hardened_clay")
     cream = B("white_terracotta")
     black = B("black_concrete")
@@ -899,6 +913,12 @@ def build_town(w, T, log=print):
 def greenery(w):
     """Street lamps, trees and gardens in the leftover town space."""
     rng = w.rng
+    for lx in range(-72, 73, 8):          # invisible lights so nothing hostile spawns inside the walls
+        for lz in range(-72, 73, 8):
+            for ly in (G + 5, G + 4, G + 6, G + 3):
+                if w.get(lx, ly, lz) == 0:
+                    w.set(lx, ly, lz, B("light_block", block_light_level=15))
+                    break
     F = Frame(w, 0, G, 0, 0)
     grass = B("grass_block")
     # avenue lamps

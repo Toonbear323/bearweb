@@ -67,39 +67,30 @@ def lighthouse(w, cx, cz, g, rng):
         w.set(cx + dx, g + 2, cz + dz, bl.stairs("stone_brick", kit._inward(dx, dz)))
     for y in range(g + 2, g + 2 + h):
         band = ((y - g - 2) // 5) % 2
-        rr = r - (y - g - 2) * 0.035
-        for (dx, dz) in kit.disc_cells(rr):
+        for (dx, dz) in kit.disc_cells(r):
             d = math.hypot(dx, dz)
-            if d > rr - 1.15:
+            if d > r - 1.15:
                 w.set(cx + dx, y, cz + dz, B("white_concrete") if band == 0 else B("red_concrete"))
             else:
                 w.set(cx + dx, y, cz + dz, AIR)
-    for y in range(g + 2, g + 2 + h):
-        w.set(cx, y, cz - 2, bl.ladder("S"))
+    top = g + 2 + h
     for fy in range(g + 8, g + h, 6):
         for (dx, dz) in kit.disc_cells(r - 1.6):
-            if (dx, dz) != (0, -2):
-                w.set(cx + dx, fy, cz + dz, bl.planks("spruce"))
+            w.set(cx + dx, fy, cz + dz, bl.planks("spruce"))
         w.set(cx + 2, fy + 2, cz, bl.lantern())
-        for (dx, dz) in ((3, 0), (-3, 0), (0, 3)):
+        for (dx, dz) in ((4, 0), (-4, 0)):
             w.set(cx + dx, fy + 2, cz + dz, B("glass_pane"))
-    # door (north side faces the shore road)
-    w.set(cx, g + 2, cz - 4, AIR)
-    w.set(cx, g + 3, cz - 4, AIR)
-    w.set(cx, g + 2, cz - 3, AIR)
-    w.set(cx, g + 3, cz - 3, AIR)
-    w.set(cx, g + 2, cz - 2, AIR)
-    w.set(cx, g + 3, cz - 2, AIR)
-    for y in range(g + 4, g + 2 + h):
-        w.set(cx, y, cz - 2, bl.ladder("S"))
-    w.set(cx, g + 2, cz + 2, bl.ladder("N")) if False else None
-    top = g + 2 + h
-    # gallery
+    # gallery floor, then the ladder on the south inner wall through every floor
     for (dx, dz) in kit.disc_cells(r + 1.5):
         w.set(cx + dx, top, cz + dz, bl.block("stone_brick"))
-    w.set(cx, top, cz - 2, bl.ladder("S"))
+    for y in range(g + 2, top + 1):
+        w.set(cx, y, cz + 3, bl.ladder("N"))
+    # door on the north side (toward the quay)
+    for zz in (cz - 4, cz - 3):
+        w.set(cx, g + 2, zz, AIR)
+        w.set(cx, g + 3, zz, AIR)
     for (dx, dz) in kit._ring(r + 1.5):
-        w.set(cx + dx, top - 1, cz + dz, bl.stairs("stone_brick", kit._inward(dx, dz), top=True))
+        w.set(cx + dx, top - 1, cz + dz, bl.stairs("stone_brick", kit._inward(dx, dz), top=True), keep=True)
         w.set(cx + dx, top + 1, cz + dz, bl.fence("dark_oak"))
     # lamp room
     for y in range(top + 1, top + 5):
@@ -108,12 +99,11 @@ def lighthouse(w, cx, cz, g, rng):
     w.set(cx, top + 1, cz, B("gold_block"))
     w.set(cx, top + 2, cz, SL)
     w.set(cx, top + 3, cz, B("glowstone"))
-    w.set(cx, top + 1, cz - 2, AIR)
-    w.set(cx, top + 2, cz - 2, AIR)
     Fw = Frame(w, 0, 0, 0, 0)
     kit.cone_roof(Fw, cx, cz, top + 5, 2.5, "deepslate_tile", steep=1, spire=[B("lightning_rod", facing_direction=1)])
+    w.set(cx + 1, g + 3, cz - 5, AIR)
+    w.set(cx + 1, g + 2, cz - 5, AIR)
     dk.sign(w, cx + 1, g + 3, cz - 5, "N", "§l베어 등대\n§r바다 던전 입구는\n부두 끝에 있습니다", wood="spruce")
-    w.set(cx + 1, g + 3, cz - 4, B("white_concrete"))
 
 
 def boat(w, x, z, rng):

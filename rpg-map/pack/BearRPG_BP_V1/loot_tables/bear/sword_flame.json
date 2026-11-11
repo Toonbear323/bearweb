@@ -1,0 +1,43 @@
+{
+ "pools": [
+  {
+   "rolls": 1,
+   "entries": [
+    {
+     "type": "item",
+     "name": "minecraft:diamond_sword",
+     "weight": 1,
+     "functions": [
+      {
+       "function": "set_name",
+       "name": "§c지옥불 검"
+      },
+      {
+       "function": "set_lore",
+       "lore": [
+        "§7불타는 협곡의 열기를 품은 검"
+       ]
+      },
+      {
+       "function": "specific_enchants",
+       "enchants": [
+        {
+         "id": "sharpness",
+         "level": 4
+        },
+        {
+         "id": "fire_aspect",
+         "level": 2
+        },
+        {
+         "id": "unbreaking",
+         "level": 3
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -515,6 +515,7 @@ def canyon(w, log=print):
     for x in range(-7, 8):
         for z in range(lz - 7, lz + 3):
             w.set(x, NF, z, B("gilded_blackstone") if (x + z) % 5 == 0 else bb_mix())
+    w.fill(-8, NF + 1, lz - 9, 8, NF + 7, lz - 8, bb_mix())
     dk.reward_altar(w, 0, NF + 1, lz - 7, "S", "hell", "지옥 던전 보상")
     dk.chest(w, -6, NF + 1, lz - 7, "S", 4, rng, extra=[bl.item("diamond", 4)])
     dk.chest(w, 6, NF + 1, lz - 7, "S", 3, rng, extra=[bl.item("golden_apple", 3)])

@@ -39,3 +39,20 @@ def run(w):
         if not (0 <= other < w.sy) or REG.name(int(w.b[xi, zi, other])) != REG.name(int(w.b[xi, zi, yi])):
             out.append("door half without partner at %s" % ((xi + w.x0, yi + w.y0, zi + w.z0),))
     return out
+
+
+def coverage(worlds):
+    """Every purchasable / interactive function must be wired to at least one command block."""
+    from .catalog import DUNGEONS, SELLS, SHOPS
+    have = set()
+    for wd in worlds:
+        for d in wd.be.values():
+            if d["id"] == "CommandBlock":
+                have.add(d["Command"].split(" run ")[-1].strip())
+    want = ["function bear/shop/" + sid for items in SHOPS.values() for (sid, *_r) in items]
+    want += ["function bear/sell/" + s[0] for s in SELLS]
+    for did in DUNGEONS:
+        want += ["function bear/boss/" + did, "function bear/clear/" + did, "function bear/enter/" + did,
+                 "function bear/warp/" + did]
+    want += ["function bear/warp/town", "function bear/warp/plots", "function bear/boss/wither"]
+    return [x for x in want if x not in have]

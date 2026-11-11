@@ -413,17 +413,17 @@ def build(w, T, log=print):
     dk.sign(w, 26, BY + 3, ez0, "S", "§c§l왕좌의 방\n§r폐허의 왕이\n기다리고 있다", glow=True)
     # --- vault F -------------------------------------------------------------------------
     w.fill(42, BY, cz + 12, 52, BY, cz + 22, Mix((bl.block("polished_andesite"), 3), (bl.block("stone_brick"), 2)))
-    dk.reward_altar(w, 50, BY + 1, cz + 17, "W", "plains", "초원 던전 보상")
+    dk.reward_altar(w, 52, BY + 1, cz + 17, "W", "plains", "초원 던전 보상")
     dk.chest(w, 44, BY + 1, cz + 12, "S", 2, rng, extra=[bl.item("iron_chestplate"), bl.item("emerald", 4)])
     dk.chest(w, 48, BY + 1, cz + 12, "S", 1, rng)
     dk.chest(w, 44, BY + 1, cz + 22, "N", 2, rng, extra=[bl.item("golden_apple", 2)])
     dk.exit_pad(w, 48, BY + 1, cz + 20, facing_sign="N")
     for (x, z) in ((42, cz + 12), (52, cz + 12), (42, cz + 22), (52, cz + 22)):
         w.set(x, BY + 4, z, bl.lantern(True)) if False else w.set(x, BY + 5, z, bl.lantern(True))
+    w.set(52, BY + 1, cz + 13, B("gold_block"))
+    w.set(52, BY + 2, cz + 13, B("gold_block"))
     w.set(52, BY + 1, cz + 14, B("gold_block"))
-    w.set(52, BY + 2, cz + 14, B("gold_block"))
-    w.set(52, BY + 1, cz + 15, B("gold_block"))
-    w.set(51, BY + 1, cz + 14, B("raw_gold_block"))
+    w.set(51, BY + 1, cz + 13, B("raw_gold_block"))
     # registry
     dk.warp("plains", 0, cx + 0.5, g + 1, cz + half + 8.5, (cx, g + 2, cz))
     dk.zone(0, cx - 46, 30, cz - 52, cx + 62, 120, cz + 48)

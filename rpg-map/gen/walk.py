@@ -52,7 +52,9 @@ def tables():
     return passable, barrier, water, lava, ladder
 
 
-def reach(w, start, goals, box, max_fall=6, tol=2):
+def reach(w, start, goals, box, max_fall=None, tol=2):
+    import os
+    max_fall = max_fall or int(os.environ.get("BEAR_MAX_FALL", "6"))
     """BFS from start (x,y,z feet) inside box; returns {goal: bool}."""
     xa, ya, za, xb, yb, zb = box
     xa, xb = max(xa, w.x0), min(xb, w.x1 - 1)

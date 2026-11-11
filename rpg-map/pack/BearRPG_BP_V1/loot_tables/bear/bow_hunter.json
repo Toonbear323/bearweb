@@ -1,0 +1,39 @@
+{
+ "pools": [
+  {
+   "rolls": 1,
+   "entries": [
+    {
+     "type": "item",
+     "name": "minecraft:bow",
+     "weight": 1,
+     "functions": [
+      {
+       "function": "set_name",
+       "name": "§a사냥꾼의 활"
+      },
+      {
+       "function": "set_lore",
+       "lore": [
+        "§7가볍고 빠른 활"
+       ]
+      },
+      {
+       "function": "specific_enchants",
+       "enchants": [
+        {
+         "id": "power",
+         "level": 3
+        },
+        {
+         "id": "unbreaking",
+         "level": 2
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

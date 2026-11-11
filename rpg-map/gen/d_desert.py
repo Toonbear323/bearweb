@@ -123,7 +123,7 @@ def build(w, T, log=print):
     w.fill(wx - 5, g + 1, cz - 1, wx + 2, g + 5, cz + 1, AIR)
     w.set(wx - 5, g + 5, cz - 1, bl.stairs("sandstone", "N", top=True))
     w.set(wx - 5, g + 5, cz + 1, bl.stairs("sandstone", "S", top=True))
-    dk.sign(w, wx - 6, g + 3, cz - 2, "W", "§6§l사막 던전\n§r태양왕의 피라미드\n§8권장: 철 장비, 활", glow=True)
+    dk.sign(w, wx - 6, g + 3, cz - 2, "W", "§6§l사막 던전\n§r태양왕의 피라미드\n§8권장 철 장비·활", glow=True)
     # --- avenue with obelisks + sphinxes -------------------------------------------
     for x in range(wx - 34, wx - 5):
         for z in range(cz - 3, cz + 4):
@@ -195,6 +195,7 @@ def build(w, T, log=print):
     TR = P.room(cx + 10, KY + 1, cz - 4, cx + 13, KY + 4, cz + 4)            # treasure room
     P.room(cx + 9, KY + 1, cz - 1, cx + 9, KY + 3, cz + 1)
     P.carve()
+    w.fill(wx + 1, g + 1, cz - 1, wx + 3, g + 4, cz + 1, AIR)        # keep the pylon doorway open
     # descending stair antechamber -> hall
     for i in range(10):
         x = cx - 1 + i
@@ -216,7 +217,7 @@ def build(w, T, log=print):
             w.set(x, y, z, bl.stairs("smooth_sandstone", "W"))
         if i % 4 == 2:
             w.set(x, y + 4, gz, bl.torch("N"))
-    w.fill(cx + 8, LY + 1, gz, cx + 8, LY + 5, gz + 2, AIR)
+    w.fill(cx + 8, LY + 2, gz, cx + 8, LY + 5, gz + 2, AIR)
     w.fill(cx - 14, KY, gz - 1, cx - 12, KY, gz + 2, bl.block("cut_sandstone"))
     w.fill(cx - 14, KY + 1, gz, cx - 12, KY + 5, gz + 2, AIR)
     w.fill(cx - 12, KY + 1, gz, cx - 11, KY + 5, gz + 2, AIR)

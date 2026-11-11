@@ -78,7 +78,9 @@ def shop_interior(F, info, kind):
              "magic": [B("bookshelf"), B("amethyst_block"), B("chiseled_bookshelf", books_stored=63, direction=0)],
              "food": [bl.barrel("U"), B("hay_block"), B("melon_block")]}[kind]
     for (sid, label, price, _cmds), (x, z, d) in zip(items, slots):
-        text = "§l%s\n§6%d 골드" % (label.replace("\n", "§r\n"), price)
+        first = label.split("\n")[0]
+        bold = "§l" if sum(2 if ord(c) > 0x2E80 else 1 for c in first) <= 14 else ""
+        text = "%s%s\n§6%d 골드" % (bold, label.replace("\n", "§r\n"), price)
         sale_slot(F, x, 3, z, d, text, "function bear/shop/" + sid, panel, deco=decos[int(rng.integers(0, len(decos)))])
         dx, dz = DIRS[d]
         if (x, z) not in ((7, 6), (7, 8), (7, 10), (9, 6), (9, 8), (9, 10)):
@@ -445,7 +447,7 @@ def warp_shrine(w, x, z, face):
             F.sign(xw + dr * 4, 9, z0 + 1, face_in, "%s\n§r%s" % (title, _WARP_SUB[wid]), wood="dark_oak", glow=True)
             info_txt = "§l발판을 밟으면\n이동합니다"
             if wid in DUNGEONS:
-                info_txt = "§l보상 %d 골드§r\n%s" % (DUNGEONS[wid][1], DUNGEONS[wid][2])
+                info_txt = "§l보상 %d 골드§r\n권장 장비\n%s" % (DUNGEONS[wid][1], DUNGEONS[wid][2])
             F.sign(xw + dr * 4, 5, z0 - 1, face_in, info_txt, wood="dark_oak")
             F.set(xw + dr * 4, 6, z0 + 3, B("end_rod", facing_direction={"E": 4, "W": 5, "N": 3, "S": 2}[
                 F.d(face_in)]))
@@ -480,13 +482,18 @@ def warp_shrine(w, x, z, face):
 # guild hall + inn
 # ---------------------------------------------------------------------------
 
+def sell_text(label, gold):
+    item, cnt = label.rsplit(" ", 1)
+    return "§l%s\n§r%s 판매\n§6+%d 골드" % (item, cnt, gold)
+
+
 def guild_hall(w, x, z, face):
     W, D = 33, 19
     F = Frame.box(w, x, G, z, W, D, face)
     rng = F.rng
     pal = houses.palette("copper")
     info = houses.shell(F, W, D, floors=2, pal=pal, jetty=True, roof_axis="x", door_x=16, dormer=True,
-                        chimney=("W", 8), sign="§l모험가 길드", ground_back_windows=False,
+                        chimney=("W", 8), sign="§l모험가\n§l길드", ground_back_windows=False,
                         no_window=(("E", 0, 0), ("E", 1, 0)))
     fy = info["fy"]
     panel = bl.planks("dark_oak")
@@ -498,14 +505,14 @@ def guild_hall(w, x, z, face):
             F.log(xx, y, 2, "dark_oak")
     F.fill(W - 9, 2, 1, W - 9, 5, 2, panel)
     for (sid, label, item, cnt, gold), xx in zip(SELLS, xs):
-        text = "§l%s\n§r판매 → §6%d 골드" % (label, gold)
+        text = sell_text(label, gold)
         sale_slot(F, xx, 3, 2, "S", text, "function bear/sell/" + sid, panel, deco=bl.barrel("S"))
         F.set(xx, 5, 2, B("glowstone"))
     left = SELLS[len(xs):]
     for i, (sid, label, item, cnt, gold) in enumerate(left):
         zz = 5 + 2 * i
         F.fill(W - 3, 2, zz - 1, W - 3, 5, zz + 1, panel)
-        sale_slot(F, W - 3, 3, zz, "W", "§l%s\n§r판매 → §6%d 골드" % (label, gold), "function bear/sell/" + sid,
+        sale_slot(F, W - 3, 3, zz, "W", sell_text(label, gold), "function bear/sell/" + sid,
                   panel, deco=bl.barrel("W"))
     F.sign(16, 5, 3, "S", "§6§l전리품 매입소\n§r버튼을 누르면\n판매됩니다", wood="dark_oak", glow=True)
     # quest board on the west wall
@@ -638,7 +645,7 @@ def inn(w, x, z, face):
     pal = houses.palette("spruce")
     pal["roof"] = "dark_oak"
     info = houses.shell(F, W, D, floors=3, pal=pal, jetty=True, roof_axis="x", door_x=15, dormer=True,
-                        chimney=("E", 5), sign="§l곰발바닥 여관")
+                        chimney=("E", 5), sign="§l곰발바닥\n§l여관")
     fy = info["fy"]
     # bar
     for xx in range(2, 11):

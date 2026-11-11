@@ -163,7 +163,7 @@ def build(w, T, log=print):
         w.set(cx, g + 8, z, bl.slab("stone_brick", top=True)) if z % 2 else None
     w.fill(cx - 2, g, gz - 4, cx + 2, g, gz + 4, Mix((bl.block("cobblestone"), 4), (B("gravel"), 3),
                                                      (bl.block("mossy_cobblestone"), 3), (B("grass_path"), 2)))
-    dk.sign(w, cx - 3, g + 2, gz + 2, "S", "§2§l초원 던전\n§r폐허의 성채\n§8권장: 돌~철 장비", wood="dark_oak", glow=True)
+    dk.sign(w, cx - 3, g + 2, gz + 2, "S", "§2§l초원 던전\n§r폐허의 성채\n§8권장 돌~철 장비", wood="dark_oak", glow=True)
     # path gate -> keep
     for z in range(cz + 12, gz - 3):
         for x in range(cx - 1, cx + 2):

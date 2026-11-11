@@ -27,7 +27,7 @@ HELL_G = 72
 # nether build region
 NX0, NZ0, NX1, NZ1 = -256, -256, 256, 128
 NY0, NY1 = 0, 128
-NHUB = (0, 40, 0)           # nether hub arrival point (x, y, z)
+NOFF = 8000                 # nether region is exported shifted by this many blocks in x (keeps zones disjoint)
 
 # biome ids
 BIO_OCEAN, BIO_PLAINS, BIO_DESERT, BIO_HILLS, BIO_FOREST = 0, 1, 2, 3, 4

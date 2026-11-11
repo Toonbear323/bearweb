@@ -150,13 +150,13 @@ SELLS = [
 
 # dungeon id -> (korean name, clear reward gold, recommended gear text, colour code)
 DUNGEONS = {
-    "plains": ("초원 던전 · 폐허의 성채", 150, "권장: 돌~철 장비", "§a"),
-    "cave": ("동굴 던전 · 수정 동굴", 300, "권장: 철 장비, 횃불", "§7"),
-    "desert": ("사막 던전 · 태양왕의 피라미드", 450, "권장: 철 장비, 활", "§e"),
-    "ocean": ("바다 던전 · 가라앉은 신전", 650, "권장: 수중 호흡 물약", "§3"),
-    "hell": ("지옥 던전 · 불타는 협곡", 900, "권장: 다이아 장비, 화염 저항", "§c"),
-    "fortress": ("네더 요새 · 위더의 성채", 1300, "권장: 다이아 장비, 활", "§4"),
-    "bastion": ("피글린 요새 · 황금 보루", 1600, "권장: 최고급 장비", "§6"),
+    "plains": ("초원 던전 · 폐허의 성채", 150, "돌~철 장비", "§a"),
+    "cave": ("동굴 던전 · 수정 동굴", 300, "철 장비·횃불", "§7"),
+    "desert": ("사막 던전 · 태양왕의 피라미드", 450, "철 장비·활", "§e"),
+    "ocean": ("바다 던전 · 가라앉은 신전", 650, "수중 호흡 물약", "§3"),
+    "hell": ("지옥 던전 · 불타는 협곡", 900, "다이아·화염 저항", "§c"),
+    "fortress": ("네더 요새 · 위더의 성채", 1300, "다이아 장비·활", "§4"),
+    "bastion": ("피글린 요새 · 황금 보루", 1600, "최고급 장비", "§6"),
 }
 ENCH_ID = {"protection": 0, "fire_protection": 1, "feather_falling": 2, "blast_protection": 3,
            "projectile_protection": 4, "thorns": 5, "respiration": 6, "depth_strider": 7, "aqua_affinity": 8,

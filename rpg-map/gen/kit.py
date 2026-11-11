@@ -766,3 +766,43 @@ def waterlog_region(w, xa, ya, za, xb, yb, zb):
     part = tbl[v]
     w.wl[s] |= part
     v[v == 0] = bl.WATER
+
+
+def auto_waterlog(w, xa, ya, za, xb, yb, zb, water_id=None):
+    """Waterlog every partial block in the box that touches water (keeps Bedrock water from leaving gaps)."""
+    water_id = bl.WATER if water_id is None else water_id
+    s = w._clip(xa, ya, za, xb, yb, zb)
+    if s is None:
+        return 0
+    v = w.b[s]
+    solid = full_solid_table()
+    n = max(len(REG.entries), int(v.max()) + 1)
+    part = np.zeros(n, bool)
+    part[:len(solid)] = ~solid
+    part[0] = False
+    part[water_id] = False
+    for i, (name, _) in enumerate(REG.entries):
+        if name in ("lava", "flowing_lava", "flowing_water", "fire", "soul_fire", "torch", "soul_torch",
+                    "redstone_torch", "campfire", "soul_campfire", "light_block", "portal", "web"):
+            part[i] = False
+    isp = part[v]
+    wat = (v == water_id) | w.wl[s]
+    near = np.zeros_like(wat)
+    near[1:, :, :] |= wat[:-1, :, :]
+    near[:-1, :, :] |= wat[1:, :, :]
+    near[:, 1:, :] |= wat[:, :-1, :]
+    near[:, :-1, :] |= wat[:, 1:, :]
+    near[:, :, :-1] |= wat[:, :, 1:]
+    near[:, :, 1:] |= wat[:, :, :-1]
+    # never waterlog a block that also touches air: it would leak into dry rooms
+    air = (v == 0) & ~w.wl[s]
+    dry = np.zeros_like(air)
+    dry[1:, :, :] |= air[:-1, :, :]
+    dry[:-1, :, :] |= air[1:, :, :]
+    dry[:, 1:, :] |= air[:, :-1, :]
+    dry[:, :-1, :] |= air[:, 1:, :]
+    dry[:, :, :-1] |= air[:, :, 1:]
+    dry[:, :, 1:] |= air[:, :, :-1]
+    m = isp & near & ~dry
+    w.wl[s] |= m
+    return int(m.sum())

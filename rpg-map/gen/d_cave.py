@@ -151,7 +151,7 @@ def build(w, T, log=print):
         w.set(x, g + 7, ez + 1, bl.slab("spruce")) if abs(x - mx) < 3 else None
     w.set(mx - 2, g + 5, ez + 1, bl.lantern(True))
     w.set(mx + 2, g + 5, ez + 1, bl.lantern(True))
-    dk.sign(w, mx, g + 6, ez + 2, "S", "§8§l동굴 던전\n§r수정 동굴\n§8권장: 철 장비, 횃불", wood="spruce", glow=True)
+    dk.sign(w, mx, g + 6, ez + 2, "S", "§8§l동굴 던전\n§r수정 동굴\n§8권장 철 장비·횃불", wood="spruce", glow=True)
     # yard props: carts of ore, crates, campfire
     for i, x in enumerate(range(mx - 1, mx + 2)):
         pass
@@ -167,7 +167,6 @@ def build(w, T, log=print):
     w.set(mx + 3, g + 1, mz + 6, bl.log("spruce", "x"))
     kit.lamp_arm(F, mx - 6, g + 1, mz + 7, "E", h=4, wood="spruce")
     kit.lamp_arm(F, mx + 6, g + 1, mz + 7, "W", h=4, wood="spruce")
-    dk.plate(w, mx, g + 1, ez - 3, "function bear/enter/cave", floor=bl.block("cobblestone"))
     # ------------------------------------------------------------------ mine tunnel (north)
     tz_end = mz - 40
     for z in range(ez - 3, tz_end - 1, -1):
@@ -187,6 +186,8 @@ def build(w, T, log=print):
             if k % 10 == 2:
                 w.set(mx, g + 3, z, bl.lantern(True))
     w.set(mx, g + 1, tz_end, bl.block("spruce"))
+    for px in (mx - 1, mx + 1):
+        dk.plate(w, px, g + 1, ez - 4, "function bear/enter/cave", floor=bl.block("cobblestone"))
     # mine hub with side stope
     hz = tz_end - 6
     blob(w, mx, g + 4, hz, 8, 4.5, 7, rng, n=5)
@@ -202,11 +203,13 @@ def build(w, T, log=print):
     w.set(mx + 3, g + 3, hz, bl.lantern(True)) if w.get(mx + 3, g + 4, hz) != 0 else w.set(mx + 3, g + 1, hz + 3,
                                                                                          bl.lantern())
     w.set(mx - 3, g + 1, hz + 4, bl.lantern())
-    dk.sign(w, mx + 2, g + 2, hz - 6, "S", "§l← 이끼 동굴\n§r아래로 내려가면\n수정 동굴", standing=True, wood="spruce")
     # ------------------------------------------------------------------ lush grotto
     L = (mx + 24, 68, mz - 64)                    # centre
     tunnel(w, [(mx + 2, g + 1, hz - 4), (mx + 8, g - 3, hz - 10), (mx + 12, 73, mz - 58), (L[0] - 14, 69, L[2])],
            2.2, rng)
+    w.set(mx - 4, g, hz - 4, bl.block("cobblestone"))
+    w.set(mx - 4, g + 1, hz - 4, 0)
+    dk.sign(w, mx - 4, g + 1, hz - 4, "S", "§l동쪽 굴 아래로\n§r이끼 동굴을 지나\n수정 동굴로", standing=True, wood="spruce")
     blob(w, L[0], L[1] + 5, L[2], 17, 8, 14, rng, n=9)
     w.ellipsoid(L[0], L[1] - 1, L[2], 15, 2.5, 12, AIR)
     # pools
@@ -346,7 +349,7 @@ def build(w, T, log=print):
     # ------------------------------------------------------------------ amethyst geode
     Gc = (mx + 74, 50, mz - 46)
     R = 14
-    tunnel(w, [(Dc[0] + 16, Dc[1] - 1, Dc[2] + 6), (Dc[0] + 20, 54, Dc[2] + 16), (Gc[0], 49, Gc[2] - R + 1)], 2.0,
+    tunnel(w, [(Dc[0] + 16, Dc[1] - 1, Dc[2] + 6), (Dc[0] + 19, 50, Dc[2] + 14), (Gc[0], 44, Gc[2] - R - 5)], 2.0,
            rng)
     w.sphere(Gc[0], Gc[1], Gc[2], R + 2.5, B("smooth_basalt"), only=rockset | {AIR})
     w.sphere(Gc[0], Gc[1], Gc[2], R + 1.5, B("calcite"))
@@ -356,8 +359,8 @@ def build(w, T, log=print):
     w.fill(Gc[0] - R, Gc[1] - R, Gc[2] - R, Gc[0] + R, fy, Gc[2] + R,
            Mix((B("amethyst_block"), 10), (B("calcite"), 2), (B("budding_amethyst"), 1)), only={AIR})
     # re-open the entrance tunnel mouth through the shell
-    w.fill(Gc[0] - 1, fy + 1, Gc[2] - R - 3, Gc[0] + 1, fy + 3, Gc[2] - R + 2, AIR)
-    for z in range(Gc[2] - R - 3, Gc[2] - R + 3):
+    w.fill(Gc[0] - 1, fy + 1, Gc[2] - R - 6, Gc[0] + 1, fy + 3, Gc[2] - R + 2, AIR)
+    for z in range(Gc[2] - R - 6, Gc[2] - R + 3):
         for x in (Gc[0] - 1, Gc[0], Gc[0] + 1):
             if w.get(x, fy, z) == 0:
                 w.set(x, fy, z, B("calcite"))
@@ -467,6 +470,9 @@ def build(w, T, log=print):
             w.set(hx0 - 1, y, z, B("reinforced_deepslate") if edge else B("sculk"))
             if not edge and (y + z) % 3 == 0:
                 w.set(hx0 - 1, y, z, B("deepslate_tiles"))
+    # doorway to the vault through the middle of the frame
+    w.fill(hx0 - 2, SY + 1, sz_ - 1, hx0 - 1, SY + 1, sz_ + 1, B("polished_deepslate"))
+    w.fill(hx0 - 2, SY + 2, sz_ - 1, hx0 - 1, SY + 4, sz_ + 1, AIR)
     for z in (sz_ - 5, sz_ + 5):
         w.set(hx0 + 1, SY + 2, z, B("soul_lantern", hanging=False))
         dk.brazier(w, hx0 + 3, SY + 2, z, soul=True)

@@ -54,4 +54,33 @@ if __name__ == '__main__':
         import numpy as np
         # sanity: nothing carved breaks the surface
         print('fallback colors:', [REG.entries[i][0] for i in range(len(REG.entries)) if tuple(render.color_table()[i])==(200,0,200)][:20])
+    if what == 'ocean':
+        from gen import d_ocean
+        w, T = crop_world(0, 280, 168)
+        d_ocean.build(w, T)
+        terrain.vegetation(w, T, log=lambda *a: None)
+        kit.connect_walls(w)
+        render.iso(w, (-45, SEA-6, 120, 45, SEA+45, 205), view=0, S=8, out='out/ocean_harbor.png')
+        # drain the sea for the temple view
+        ws = w.b.copy()
+        w.b[w.b == bl.WATER] = 0
+        render.iso(w, (-50, 14, 190, 50, 62, 405), view=1, S=6, out='out/ocean_temple.png')
+        render.iso(w, (-16, 22, 285, 16, 46, 400), view=1, S=8, cut_y=40, out='out/ocean_cut.png')
+        w.b[:] = ws
+        print('fallback colors:', [REG.entries[i][0] for i in range(1,len(REG.entries)) if tuple(render.color_table()[i])==(200,0,200)][:20])
+    if what == 'nether':
+        from gen import nether
+        w = nether.make_world()
+        print('terrain', time.time()-t)
+        from gen import n_fort, n_bast
+        nether.hub(w); nether.canyon(w); n_fort.build(w); n_bast.build(w)
+        kit.connect_walls(w)
+        print('built', time.time()-t)
+        render.topdown(w, ymax=58, scale=2, out='out/nether_top.png')
+        render.iso(w, (-45, 36, 25, 45, 75, 100), view=0, S=8, cut_y=52, out='out/nether_hub.png')
+        render.iso(w, (-45, 30, -250, 45, 80, -160), view=0, S=7, cut_y=56, out='out/nether_arena.png')
+        render.iso(w, (-50, 36, -110, 50, 80, -30), view=0, S=7, cut_y=58, out='out/nether_crimson.png')
+        render.iso(w, (96, 20, 6, 250, 100, 122), view=0, S=6, cut_y=64, out='out/nether_fort.png')
+        render.iso(w, (-250, 30, 6, -96, 100, 122), view=1, S=6, cut_y=70, out='out/nether_bast.png')
+        print('fallback colors:', [REG.entries[i][0] for i in range(1,len(REG.entries)) if tuple(render.color_table()[i])==(200,0,200)][:20])
     print(time.time()-t)

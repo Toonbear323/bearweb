@@ -240,6 +240,21 @@ class World:
         self.biome_boxes = []
         self.rng = np.random.default_rng(seed)
 
+    def shift(self, dx, dz):
+        """Translate the whole volume horizontally (dx, dz multiples of 16)."""
+        assert dx % 16 == 0 and dz % 16 == 0
+        self.x0 += dx
+        self.x1 += dx
+        self.z0 += dz
+        self.z1 += dz
+        be = {}
+        for (x, y, z), d in self.be.items():
+            d["x"] = x + dx
+            d["z"] = z + dz
+            be[(x + dx, y, z + dz)] = d
+        self.be = be
+        self.biome_boxes = [(a + dx, b, c + dz, d + dx, e, f + dz, g) for (a, b, c, d, e, f, g) in self.biome_boxes]
+
     # -- basic access -------------------------------------------------------
     def inb(self, x, y, z):
         return self.x0 <= x < self.x1 and self.z0 <= z < self.z1 and self.y0 <= y < self.y1

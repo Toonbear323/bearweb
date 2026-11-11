@@ -447,7 +447,7 @@ def warp_shrine(w, x, z, face):
             if wid in DUNGEONS:
                 info_txt = "§l보상 %d 골드§r\n%s" % (DUNGEONS[wid][1], DUNGEONS[wid][2])
             F.sign(xw + dr * 4, 5, z0 - 1, face_in, info_txt, wood="dark_oak")
-            F.set(xw + dr * 4, 6, z0 + 3, B("end_rod", facing_direction={"E": 5, "W": 4, "N": 2, "S": 3}[
+            F.set(xw + dr * 4, 6, z0 + 3, B("end_rod", facing_direction={"E": 4, "W": 5, "N": 3, "S": 2}[
                 F.d(face_in)]))
     # carpet runner and altar
     for zz in range(6, zc + 1):

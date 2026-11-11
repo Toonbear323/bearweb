@@ -87,7 +87,7 @@ ROADS = {
     "east": ([(TOWN_R + 2, 0), (120, 2), (165, 20), (205, 50), (238, 72)], 2.6),
     "south": ([(0, TOWN_R + 2), (0, 112), (0, 146)], 2.6),
     "west": ([(-TOWN_R - 2, 0), (-97, 0), (-117, 0)], 2.6),
-    "mine": ([(112, 2), (135, -50), (160, -110), (182, -158), (192, -176)], 2.0),
+    "mine": ([(112, 2), (135, -50), (160, -110), (182, -158), (205, -180), (220, -194), (226, -199)], 2.0),
     "hell": ([(0, 100), (-40, 118), (-95, 140), (-150, 185), (-190, 214), (-214, 228)], 2.0),
     "forest": ([(0, -106), (-60, -112), (-110, -140), (-150, -165)], 1.6),
 }
@@ -172,7 +172,7 @@ def build_heightmap(seed=7):
     flatten(np.hypot(X - KEEP[0], Z - KEEP[1]), KEEP_G + 0.3, 52, 26)
     d_pyr = np.maximum(np.abs(X - PYRAMID[0]), np.abs(Z - PYRAMID[1]))
     flatten(d_pyr, PYR_G + 0.3, 56, 28)
-    flatten(np.hypot(X - MINE[0], Z - MINE[1]), MINE_G + 0.3, 11, 12)
+    flatten(np.hypot(X - MINE[0], Z - MINE[1] - 3), MINE_G + 0.3, 7, 9)
     flatten(np.hypot(X - HARBOR[0], Z - HARBOR[1] + 14), SEA + 2.3, 16, 18)
 
     # deep basin for the sunken temple

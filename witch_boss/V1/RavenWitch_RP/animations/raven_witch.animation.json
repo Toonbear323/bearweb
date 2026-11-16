@@ -1,0 +1,59 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.raven_witch.idle": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "position": [
+            0,
+            "math.sin(query.life_time * 90) * 0.6",
+            0
+          ]
+        },
+        "raven": {
+          "position": [
+            0,
+            "math.sin(query.life_time * 220) * 0.8",
+            0
+          ]
+        },
+        "ravenWingR": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.life_time * 520) * 16"
+          ]
+        },
+        "ravenWingL": {
+          "rotation": [
+            0,
+            0,
+            "-math.sin(query.life_time * 520) * 16"
+          ]
+        },
+        "ravenHead": {
+          "rotation": [
+            0,
+            "math.sin(query.life_time * 60) * 10",
+            0
+          ]
+        },
+        "rightArm": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.life_time * 90) * 2.5"
+          ]
+        },
+        "leftArm": {
+          "rotation": [
+            0,
+            0,
+            "-math.sin(query.life_time * 90) * 2.5"
+          ]
+        }
+      }
+    }
+  }
+}

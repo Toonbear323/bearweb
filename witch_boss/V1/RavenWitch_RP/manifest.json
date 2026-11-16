@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Raven Witch Boss V1 [RP]",
+    "description": "까마귀 마녀 보스 - 모델 / 텍스처 (V1)",
+    "uuid": "6f0c1a52-8d3b-4c1e-9a47-2b5e7c9d1f01",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      80
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "0a7d4e83-51c2-4f6b-b8e9-3c6f8a1d2e02",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "c3e9b7a1-2f4d-4a8c-8b16-7d5e9f0a3b03",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Starnight Witch BP V1",
+    "description": "Starnight Witch boss - entity (V1)",
+    "uuid": "c4a95176-87ac-59b1-b075-316cab23711d",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "ef5549f8-8881-5aa4-a69d-543fef560f33",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "9109b0ca-833e-5460-9e6b-f6417508c792",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

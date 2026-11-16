@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Starnight Witch RP V1",
+    "description": "Starnight Witch boss - model & texture (V1)",
+    "uuid": "9109b0ca-833e-5460-9e6b-f6417508c792",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "9869a252-7702-55a8-8813-532140958eff",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

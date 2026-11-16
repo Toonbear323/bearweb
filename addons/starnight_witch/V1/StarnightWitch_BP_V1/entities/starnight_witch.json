@@ -1,0 +1,43 @@
+{
+  "format_version": "1.20.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "bw:starnight_witch",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "starnight_witch",
+          "boss",
+          "monster",
+          "mob"
+        ]
+      },
+      "minecraft:health": {
+        "value": 400,
+        "max": 400
+      },
+      "minecraft:collision_box": {
+        "width": 1.2,
+        "height": 3.1
+      },
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:nameable": {},
+      "minecraft:persistent": {},
+      "minecraft:boss": {
+        "should_darken_sky": false,
+        "hud_range": 55
+      }
+    }
+  }
+}

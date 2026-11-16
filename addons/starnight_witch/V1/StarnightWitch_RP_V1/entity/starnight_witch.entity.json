@@ -1,0 +1,24 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bw:starnight_witch",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/starnight_witch"
+      },
+      "geometry": {
+        "default": "geometry.starnight_witch"
+      },
+      "render_controllers": [
+        "controller.render.starnight_witch"
+      ],
+      "spawn_egg": {
+        "base_color": "#1c2566",
+        "overlay_color": "#ffe07a"
+      }
+    }
+  }
+}

@@ -1,9 +1,11 @@
-"""Raven Witch boss (voxel style) - geometry + texture generator for a Bedrock add-on.
+"""Raven Witch boss - true 3D voxel model generator for a Bedrock add-on.
 
-The model is authored on the voxel grid of the reference art (../ref/front.png):
-one art "voxel" (21.8 px) = one model unit.  Every front-facing texel is taken
-straight from the reference picture (orthographic projection), the other faces
-are wrapped / tiled from clean parts of the same picture.
+Every part is sculpted as a real voxel volume (see voxlib.py) on the voxel grid of the
+reference art (../ref/front.png, one art voxel = 21.8 px = one model unit) and then merged
+into boxes.  Nothing is a flat projected picture: silhouettes come from the art, depth is
+modelled, and every voxel gets its own colour (art colour on the visible front voxels,
+palette rules everywhere else).  Only the tiny ornaments (eye, mask, brooch panel) carry a
+finer painted decal on their own voxels.
 
 Run:  python3 build_witch.py <out_dir>
 Authoring space: +X = her LEFT (picture right), +Y = up, -Z = FRONT.
@@ -18,387 +20,455 @@ from PIL import Image, ImageDraw, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from mclib import Model  # noqa: E402
-from paint import C, mix, hashf  # noqa: E402
+from paint import C as HEX, hashf  # noqa: E402
+from voxlib import Vox, CX, GY  # noqa: E402
 
-# ------------------------------------------------------------------ reference grid
-PITCH, OX, OY = 21.8, -3.1, -3.1      # art pixels per voxel, origin of cell (0,0)
-CX, GY = 28.0, 45.8                   # grid column of X=0, grid row of the ground (Y=0)
+# ------------------------------------------------------------------ reference art helpers
+PITCH, OX, OY = 21.8, -3.1, -3.1
 _ART = Image.open(os.path.join(HERE, '..', 'ref', 'front.png')).convert('RGB')
-_BLUR = {}
+ART = np.asarray(_ART, float) / 255.
+ART4 = np.asarray(_ART.filter(ImageFilter.BoxBlur(PITCH / 8.0)), float) / 255.
 
 
-def art(d):
-    """reference picture pre-filtered for a texel density of d texels / voxel"""
-    if d not in _BLUR:
-        r = PITCH / d / 2.0
-        im = _ART.filter(ImageFilter.BoxBlur(r)) if r > 0.6 else _ART
-        _BLUR[d] = np.asarray(im, float) / 255.
-    return _BLUR[d]
+def _cellgrid(s):
+    nc, nr = int((ART.shape[1] - OX) / (PITCH * s)), int((ART.shape[0] - OY) / (PITCH * s))
+    out = np.zeros((nr, nc, 3))
+    p = PITCH * s
+    for r in range(nr):
+        for c in range(nc):
+            xa, xb = int(max(0, OX + c * p + p * 0.18)), int(min(ART.shape[1], OX + (c + 1) * p - p * 0.18))
+            ya, yb = int(max(0, OY + r * p + p * 0.18)), int(min(ART.shape[0], OY + (r + 1) * p - p * 0.18))
+            if xb > xa and yb > ya:
+                px = ART[ya:yb, xa:xb].reshape(-1, 3)
+                l = px.sum(1)
+                out[r, c] = px[l >= np.percentile(l, 40)].mean(0)
+    return out
 
 
-def sample(col, row, d=4):
-    a = art(d)
-    ax = np.clip(np.round(OX + np.asarray(col) * PITCH).astype(int), 0, a.shape[1] - 1)
-    ay = np.clip(np.round(OY + np.asarray(row) * PITCH).astype(int), 0, a.shape[0] - 1)
-    return a[ay, ax]
+SPR = {1.0: _cellgrid(1.0), 0.5: _cellgrid(0.5)}
 
 
-def dens(ctx):
-    return max(1, int(round(ctx.w / ctx.fw)))
+def spr(v, res=None):
+    """art colour of the grid cell every voxel sits in (flat, one colour per voxel)"""
+    res = res or v.s
+    g = SPR[res]
+    ci = np.clip(np.floor(v.C / res).astype(int), 0, g.shape[1] - 1)
+    ri = np.clip(np.floor(v.R / res).astype(int), 0, g.shape[0] - 1)
+    return g[ri, ci]
 
 
-def tri(t, w):
-    """mirror-repeat t into [0, w]"""
-    t = np.mod(t, 2 * w)
-    return np.where(t > w, 2 * w - t, t)
+def sprcols(v, cols, seed=0, bs=(2, 1, 2)):
+    """colour taken from the voxel's own art row, column picked (in coherent blocks) from `cols`"""
+    g = SPR[1.0]
+    cols = np.asarray(cols)
+    h = hashf(v.I // bs[0], v.J // bs[1], v.K // bs[2], 40 + seed)
+    ci = cols[(h * len(cols)).astype(int) % len(cols)]
+    ri = np.clip(np.floor(v.R).astype(int), 0, g.shape[0] - 1)
+    return g[ri, ci]
 
 
-def voxel_jitter(ctx, amp=0.07):
-    q = np.floor(ctx.Pm + 500.01).astype(np.int64)
-    return 1 + (hashf(q[..., 0], q[..., 1], q[..., 2], 7) - .5) * 2 * amp
+def decal(col, row):
+    ax = np.clip(np.round(OX + col * PITCH).astype(int), 0, ART4.shape[1] - 1)
+    ay = np.clip(np.round(OY + row * PITCH).astype(int), 0, ART4.shape[0] - 1)
+    return ART4[ay, ax]
 
 
-# ------------------------------------------------------------------ materials
-def proj(ctx):
-    """orthographic projection of the reference picture (front / back faces)"""
-    P = ctx.Pm
-    return sample(P[..., 0] + CX, GY - P[..., 1], dens(ctx))
+def pal(names):
+    return np.array([HEX(n) for n in names])
 
 
-def wrap(side=0.9, top=1.05, bottom=0.72, inset=0.5):
-    """front/back: projection.  other faces: the colours of the nearest front edge, smeared
-    backwards (keeps every row / column colour of the picture), with a little voxel jitter."""
-    def f(ctx):
-        c = ctx.cube
-        P = ctx.Pm
-        X, Y = P[..., 0], P[..., 1]
-        x0, x1 = c.origin[0] + inset, c.origin[0] + c.size[0] - inset
-        y0, y1 = c.origin[1] + inset, c.origin[1] + c.size[1] - inset
-        if x1 < x0:
-            x0 = x1 = c.origin[0] + c.size[0] / 2
-        if y1 < y0:
-            y0 = y1 = c.origin[1] + c.size[1] / 2
-        fc = ctx.face
-        if fc in ('north', 'south'):
-            return proj(ctx)
-        if fc in ('east', 'west'):
-            Xs = np.full(X.shape, x0 if fc == 'east' else x1)
-            return sample(Xs + CX, GY - np.clip(Y, y0, y1), 2) * side * voxel_jitter(ctx)[..., None]
-        Ys = np.full(Y.shape, y1 if fc == 'up' else y0)
-        return sample(np.clip(X, x0, x1) + CX, GY - Ys, 2) * (top if fc == 'up' else bottom) * voxel_jitter(ctx)[..., None]
-    return f
+def pick(p, h):
+    return p[(np.clip(h, 0, 0.9999) * len(p)).astype(int)]
 
 
-def patch(c0, c1, r0=None, r1=None, north=True, side=0.92, top=1.05, bottom=0.72, row_up=None, row_down=None):
-    """front: projection (if north).  other faces: the clean picture columns c0..c1 mirror-tiled
-    around the box, rows kept (so bands / gradients line up with the front)."""
-    w = c1 - c0
-
-    def f(ctx):
-        P = ctx.Pm
-        X, Y, Z = P[..., 0], P[..., 1], P[..., 2]
-        fc = ctx.face
-        if fc == 'north' and north:
-            return proj(ctx)
-        row = GY - Y
-        if r0 is not None:
-            row = np.clip(row, r0 + 0.25, r1 - 0.25)
-        if fc in ('east', 'west'):
-            return sample(c0 + tri(Z + 40.3, w), row, 2) * side
-        if fc in ('south', 'north'):
-            return sample(c0 + tri(X + 40.3, w), row, 2)
-        c = ctx.cube
-        if fc == 'up':
-            rr = row_up if row_up is not None else (GY - (c.origin[1] + c.size[1]) + 0.5)
-            m = top
-        else:
-            rr = row_down if row_down is not None else (GY - c.origin[1] - 0.5)
-            m = bottom
-        if r0 is not None:
-            rr = min(max(rr, r0 + 0.25), r1 - 0.25)
-        return sample(c0 + tri(X + 0.57 * np.floor(Z) + 40.3, w), np.full(X.shape, rr), 2) * m * voxel_jitter(ctx)[..., None]
-    return f
+def hv(v, seed, bs=(1, 1, 1)):
+    return hashf(v.I // bs[0], v.J // bs[1], v.K // bs[2], seed)
 
 
-def rowpick(cols, r0=None, r1=None, north=True, side=0.92, top=1.05, bottom=0.72, seed=0, row_up=None, streak=True):
-    """front: projection.  other faces: voxel cells whose colours are picked at random from the
-    clean picture columns `cols`, always from the texel's own row (bands and gradients survive)."""
-    cols = np.asarray(cols, float)
-
-    def pick(i, j, k):
-        return cols[(hashf(i, j, k, 17 + seed) * len(cols)).astype(int) % len(cols)]
-
-    def f(ctx):
-        P = ctx.Pm
-        X, Y, Z = P[..., 0], P[..., 1], P[..., 2]
-        fc = ctx.face
-        if fc == 'north' and north:
-            return proj(ctx)
-        row = GY - Y
-        if r0 is not None:
-            row = np.clip(row, r0 + 0.2, r1 - 0.2)
-        if fc in ('east', 'west', 'south', 'north'):
-            h = Z if fc in ('east', 'west') else X
-            i = np.floor(h + 60.001).astype(np.int64)
-            j = np.floor(row + 0.001).astype(np.int64)
-            c = pick(i, j * 0 if streak else j, 1 if fc in ('east', 'west') else 2)
-            return sample(c + (h + 60.001 - i), row, 2) * (side if fc in ('east', 'west') else 1.0)
-        c = ctx.cube
-        rr = (row_up if row_up is not None else GY - (c.origin[1] + c.size[1]) + 0.5) if fc == 'up' else GY - c.origin[1] - 0.5
-        if r0 is not None:
-            rr = min(max(rr, r0 + 0.2), r1 - 0.2)
-        i = np.floor(X + 60.001).astype(np.int64)
-        k = np.floor(Z + 60.001).astype(np.int64)
-        cc = pick(i, k, 3)
-        return sample(cc + (X + 60.001 - i), np.full(X.shape, rr), 2) * (top if fc == 'up' else bottom) * voxel_jitter(ctx, 0.05)[..., None]
-    return f
+def lum(c):
+    return c.max(-1)
 
 
-def flat(col, amp=0.06):
-    c = C(col) if isinstance(col, str) else np.asarray(col)
-
-    def f(ctx):
-        return np.broadcast_to(c, ctx.u.shape + (3,)) * voxel_jitter(ctx, amp)[..., None]
-    return f
-
-
-def with_alpha(mat, poly=None, key=None):
-    """projection + alpha cut-out.  poly: polygon in grid coords;  key: fn(rgb)->bool mask"""
-    def f(ctx):
-        rgb = mat(ctx)
-        a = np.ones(rgb.shape[:2])
-        if poly is not None:
-            P = ctx.Pm
-            col, row = P[..., 0] + CX, GY - P[..., 1]
-            c0, r0 = col.min(), row.min()
-            s = 8
-            im = Image.new('L', (ctx.w * s, ctx.h * s), 0)
-            d = dens(ctx)
-            c_left = col[0, 0] - 0.5 / d
-            r_top = row[0, 0] - 0.5 / d
-            ImageDraw.Draw(im).polygon([((c - c_left) * d * s, (r - r_top) * d * s) for c, r in poly], fill=255)
-            a = np.asarray(im, float).reshape(ctx.h, s, ctx.w, s).mean((1, 3)) / 255. >= 0.5
-        if key is not None:
-            a = a * key(rgb)
-        return np.dstack([rgb, np.asarray(a, float)])
-    return f
+def poly_mask(v, poly):
+    """rasterise a polygon given in grid (col,row) coordinates onto the voxel columns/rows"""
+    s = 4
+    im = Image.new('L', (v.nx * s, v.ny * s), 0)
+    ImageDraw.Draw(im).polygon([((c - v.c0) / v.s * s, (r - v.r0) / v.s * s) for c, r in poly], fill=255)
+    a = np.asarray(im, float).reshape(v.ny, s, v.nx, s).mean((1, 3)) / 255.
+    return (a >= 0.5).T          # [i, j]
 
 
-def blue_key(rgb):
-    return (rgb[..., 2] > 0.36) & (rgb[..., 2] > rgb[..., 0] * 1.6)
+# ------------------------------------------------------------------ palettes
+PURPLE = pal(['#3A1688', '#44189A', '#4E1EAA', '#5A26BC', '#6630CC', '#4A1CA4'])
+INDIGO = pal(['#1A0E56', '#201266', '#261678', '#1C1060'])
+NAVY = pal(['#07051C', '#0B0828', '#100B34', '#0A0724'])
+GOLD = pal(['#E89648', '#F0A858', '#DC8640', '#EFA050', '#D97A6A'])
+SPIRAL = pal(['#2A22B0', '#221C98', '#3028C4', '#261EA6'])
+ORANGE = pal(['#E88A2C', '#F09A3A', '#D8782A', '#E07E28'])
+BONE = pal(['#EEF1F4', '#DDE3EA', '#F7F8FA', '#E4E9EF'])
+RAVEN = pal(['#2A2470', '#342C88', '#241E60', '#3A3498', '#2E2880'])
+ROBE = pal(['#150C36', '#1C1046', '#261456', '#30186A', '#3C1E80', '#221252'])
+HAIR_RAMP = [(0.0, '#F4F7FA'), (0.2, '#E0EBF3'), (0.4, '#C2DDEB'), (0.58, '#A4C4E6'), (0.76, '#7E92D8'), (1.0, '#5560BC')]
 
 
-def teal_key(rgb):
-    return (rgb[..., 1] > rgb[..., 0] + 0.06) & (rgb[..., 1] > 0.28)
+def ramp(t, stops):
+    xs = np.array([q[0] for q in stops])
+    cs = np.array([HEX(q[1]) for q in stops])
+    t = np.clip(t, xs[0], xs[-1])
+    return np.stack([np.interp(t, xs, cs[:, k]) for k in range(3)], -1)
 
 
-# ------------------------------------------------------------------ custom painters
-BRIM_C = (0.4, 0.0, 17.0, 16.0)     # centre x, centre z, radius x, radius z
+# ================================================================== hat
+BRIM = (16.85, 16.0, 28.6)       # radius x, radius z, centre column
 
 
-def brim_top(ctx):
-    P = ctx.Pm
-    X, Z = P[..., 0], P[..., 2]
-    r = np.sqrt(((X - BRIM_C[0]) / BRIM_C[2]) ** 2 + ((Z - BRIM_C[1]) / BRIM_C[3]) ** 2)
-    purple = sample(18.5 + tri(X + 0.43 * np.floor(Z) + 40, 18.0), 13.85 + 0.8 * hashf(np.floor(X + 99), np.floor(Z + 99), 0, 3), 2)
-    gold = sample(11.8 + tri(X + Z + 40, 2.4), np.full(X.shape, 13.45), 2)
-    return np.where((r > 0.925)[..., None], gold, purple * voxel_jitter(ctx, 0.05)[..., None])
+def brim_height(C, Z):
+    """top row of the brim sheet at (column, depth).  Front half: the stepped slant of the gold
+    rim in the picture.  Back half: sags, so from the front you look *under* it at both ends -
+    the two dark lobes outlined in gold in the picture are simply the far rim."""
+    a_, b_, cc = BRIM
+    N = np.where(C < 14.95, 12.95, np.where(C < 17.3, 13.4, np.where(C < 21.5, 14.0, np.where(C < 25, 14.4, np.where(C < 34, 14.9, np.where(
+        C < 39.2, 15.05, np.where(C < 41.6, 15.5, np.where(C < 42.6, 15.05, np.where(C < 44.1, 14.5, 14.0)))))))))
+    bx = [11.8, 12.0, 12.75, 14.0, 15.0, 16.0, 17.0, 18.6, 19.5, 21.0, 35.0, 36.1, 38.0, 39.2, 41.0, 42.5, 43.4, 44.5, 45.45]
+    by = [14.6, 15.5, 17.0, 17.9, 18.4, 19.0, 19.3, 19.7, 19.9, 20.0, 20.0, 19.9, 19.65, 19.3, 19.0, 18.5, 17.9, 17.0, 15.6]
+    F = np.interp(C, bx, by) - 0.5
+    F = np.where((C > 21) & (C < 35), 19.5 - 3.4 * np.sin(np.pi * (C - 21) / 14.0), F)
+    F = np.maximum(F, N)
+    zb = b_ * np.sqrt(np.clip(1 - ((C - cc) / a_) ** 2, 0.02, 1))
+    return N + (F - N) * np.clip(Z / zb, 0, 1) ** 1.6
 
 
-def brim_under(ctx):
-    P = ctx.Pm
-    X, Z = P[..., 0], P[..., 2]
-    r = np.sqrt(((X - BRIM_C[0]) / BRIM_C[2]) ** 2 + ((Z - BRIM_C[1]) / BRIM_C[3]) ** 2)
-    dark = sample(13.0 + tri(X + 0.43 * np.floor(Z) + 40, 5.0), 15.2 + 2.0 * hashf(np.floor(X + 99), np.floor(Z + 99), 0, 5), 2)
-    gold = sample(11.8 + tri(X + Z + 40, 2.4), np.full(X.shape, 13.45), 2) * 0.8
-    return np.where((r > 0.94)[..., None], gold, dark * 0.9)
+def make_brim():
+    v = Vox(11, 46.5, 12.5, 21.5, -16.5, 16.5, 0.5)
+    C, R, Z = v.C, v.R, v.Z
+    a_, b_, cc = BRIM
+    rin = np.sqrt(((C - cc) / a_) ** 2 + (Z / b_) ** 2)
+    inside = rin <= 1.0
+    Hq = np.floor(brim_height(C, Z) * 2 + 0.5) / 2                  # snapped to half voxels
+    H2 = np.where(inside[:, 0, :], Hq[:, 0, :], -1)
+    low = H2.copy()
+    for di, dk in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        low = np.maximum(low, np.roll(H2, (di, dk), (0, 1)))
+    low = np.broadcast_to(low[:, None, :], C.shape)
+    rtop = np.floor(R * 2) / 2
+    v.add(inside & (rtop >= Hq) & (rtop <= np.maximum(low - 0.5, Hq)))
+    top = pick(PURPLE, hv(v, 5, (4, 4, 4)) * 0.6 + hv(v, 6, (2, 2, 2)) * 0.4)
+    under = pick(INDIGO, hv(v, 7, (4, 4, 4)) * 0.7 + hv(v, 8, (2, 2, 2)) * 0.3)
+    v.paint(v.occ, under, up=top, down=under * 0.9)
+    gold = pick(GOLD, hv(v, 9, (2, 2, 2)))
+    v.paint(v.occ & (rin > 1 - 0.75 / b_), gold, up=gold, down=gold * 0.85)
+    return v
 
 
-def brim_strip(ctx):
-    """front/back: projection; outer side faces: keep the gold-on-top / dark-below profile"""
-    fc = ctx.face
-    if fc in ('north', 'south'):
-        return proj(ctx)
-    if fc == 'up':
-        return brim_top(ctx)
-    if fc == 'down':
-        return brim_under(ctx)
-    c = ctx.cube
-    P = ctx.Pm
-    xs = c.origin[0] + c.size[0] / 2
-    return sample(np.full(P[..., 0].shape, xs) + CX, GY - P[..., 1], 2)
+def make_hat():
+    v = Vox(9, 48, 0, 23, -18, 18)
+    C, R, Z = v.C, v.R, v.Z
+
+    def se(cc, a, b, n):
+        return (np.abs((C - cc) / a) ** n + np.abs(Z / b) ** n) <= 1
+
+    def rw(a, b):
+        return (R > a) & (R < b)
+    crown = (rw(1, 5) & se(28, 3, 3, 8)) | (rw(5, 6) & se(29, 4, 3.6, 4)) | (rw(6, 10) & se(28.5, 5.5, 5.5, 4)) \
+        | (rw(10, 13) & se(29, 7, 7, 4)) | (rw(13, 14) & se(29, 8.6, 8.6, 3))
+    # the brim rises in steps toward the crown (voxel dome) and the crown reaches down to the sheet
+    a_, b_, cc = BRIM
+    rin = np.sqrt(((C - cc) / a_) ** 2 + (Z / b_) ** 2)
+    H = brim_height(C, Z)
+    rowi = np.floor(R)
+    dome = ((rin < 0.72) & (rowi >= np.floor(H) - 1) & (rowi < H - 0.01)) | ((rin < 0.5) & (rowi >= np.floor(H) - 2) & (rowi < H - 0.01))
+    skirt = se(29, 8.6, 8.6, 3) & (rowi >= 14) & (rowi < H - 0.01)
+    v.add(crown | dome | skirt)
+
+    top = pick(PURPLE, hv(v, 5, (2, 2, 2)) * 0.6 + hv(v, 6) * 0.4)
+    v.paint(v.occ, top * 0.9, up=top, down=top * 0.6)
+    # crown: colours of the art's own rows, picked from clean columns, in coherent blocks
+    for (r0, r1, cols) in ((1, 5, [25, 26, 27, 28, 29, 30]), (5, 6, [26, 27, 28, 29, 31, 32]), (6, 9, [26, 27, 31, 32, 33]),
+                           (9, 10, [24, 25, 26, 27]), (10, 13, [23, 24, 25, 26, 27]), (13, 14, [21, 22, 23, 24, 25, 26, 27, 35, 36])):
+        m = crown & rw(r0, r1)
+        cl = sprcols(v, cols, r0)
+        v.paint(m, cl, up=cl * 1.08, down=cl * 0.75)
+    # the visible front voxels take the art colour of their own cell (when it is hat-coloured)
+    s = spr(v)
+    okc = (s[..., 2] > s[..., 0]) & ~((s[..., 1] > s[..., 0] + 0.08) & (s[..., 1] > 0.3) & (s[..., 2] < 0.75))
+    m = v.front() & crown & okc
+    v.paint(m, s, up=s * 1.08, down=s * 0.75)
+    return v
 
 
-HAIR_COLS = np.array([21, 22, 23, 24, 31, 32, 33, 34], float)
-HAIR_RAMP = [(0.0, '#F2F6F8'), (0.2, '#DCEAF0'), (0.4, '#B9DEE8'), (0.58, '#97BEE2'), (0.76, '#7088D4'), (1.0, '#4A52B4')]
+def make_spiral():
+    v = Vox(33.5, 43.5, 6.5, 15, -0.75, 0.75, 0.5)
+    C, R = v.C, v.R
+    m = np.zeros(v.occ.shape, bool)
+    for c0, c1, r0, r1 in ((37.9, 42.7, 6.75, 7.8), (41.7, 42.7, 7.8, 11.1), (37.9, 39.0, 7.8, 10.95), (39.0, 40.5, 10.1, 10.95),
+                           (38.2, 42.7, 11.1, 12.1), (37.1, 38.3, 11.1, 12.1), (36.0, 37.2, 10.6, 11.5), (35.0, 36.1, 9.7, 10.7), (34.0, 35.1, 8.8, 9.8)):
+        m |= (C > c0) & (C < c1) & (R > r0) & (R < r1)
+    s = spr(v)
+    blue = (s[..., 2] > 0.36) & (s[..., 2] > s[..., 0] * 1.6)
+    m |= (C > 39.0) & (C < 41.7) & (R > 7.8) & (R < 11.1) & blue
+    charm = (C > 38.4) & (C < 39.8) & (R > 12.6) & (R < 14.0) & (np.abs(v.Z) < 0.5)
+    v.add(m | charm)
+    ok = (s[..., 2] > 0.25) & (s[..., 2] > s[..., 0])
+    col = np.where(ok[..., None], s, pick(SPIRAL, hv(v, 3, (2, 2, 1))))
+    v.paint(m, col, up=col * 1.1)
+    v.paint(charm, np.where((lum(s) > 0.12)[..., None], s, HEX('#1E4A50')))
+    return v
 
 
-def hair_vox(ctx):
-    """hair on every non-front face: white near the crown, running through cyan to blue at the
-    tips, in vertical strands with a little voxel checker (as in the back view of the sheet)."""
-    P = ctx.Pm
-    X, Y, Z = P[..., 0], P[..., 1], P[..., 2]
-    fc = ctx.face
-    row = GY - Y
-    if fc in ('east', 'west'):
-        h, lat = Z, np.abs(Z) * 0.35
-    else:
-        h, lat = X, np.abs(X - 0.3)
-    if fc in ('up', 'down'):
-        i = np.floor(X + 60.001).astype(np.int64)
-        j = np.floor(Z + 60.001).astype(np.int64)
-        row = np.full(X.shape, 16.5 if fc == 'up' else GY - ctx.cube.origin[1] - 0.5)
-        lat = np.zeros(X.shape)
-        strand = hashf(i, j, 2, 29)
-    else:
-        i = np.floor(h + 60.001).astype(np.int64)
-        j = np.floor(row + 0.001).astype(np.int64)
-        strand = hashf(i, 0, 2, 29)
-    cell = hashf(i, j, 9, 31)
-    t = 0.04 + np.clip((row - 18.0) / 19.0, 0, 1) ** 1.25 * 0.9 + np.clip(lat / 8.0, 0, 1) * 0.28 + (strand - 0.5) * 0.22 + (cell - 0.5) * 0.12
-    t = t + (cell > 0.86) * 0.22            # the odd darker voxel, like the checker of the front
-    xs = np.array([q[0] for q in HAIR_RAMP])
-    cs = np.array([C(q[1]) for q in HAIR_RAMP])
-    t = np.clip(t, 0, 1)
-    col = np.stack([np.interp(t, xs, cs[:, k]) for k in range(3)], -1)
-    if fc in ('east', 'west'):
-        col = col * 0.94
-    if fc == 'down':
-        col = col * 0.78
-    return col
+def make_pumpkin():
+    v = Vox(27.5, 36.5, 7.5, 15, -11.5, -4.5, 0.5)
+    C, R, Z = v.C, v.R, v.Z
+    cc, rc, zc = 30.45, 10.75, -8.3
+    body = np.abs((C - cc) / 2.25) ** 3.2 + np.abs((R - rc) / 1.78) ** 3.2 + np.abs((Z - zc) / 1.9) ** 3.2 <= 1
+    stem = (C > 29.9) & (C < 30.9) & (R > 8.2) & (R < 9.2) & (Z > -8.9) & (Z < -7.9)
+    flower = (C > 28.4) & (C < 29.6) & (R > 8.5) & (R < 9.4) & (Z > -9.7) & (Z < -8.7)
+    s = spr(v)
+    teal = (s[..., 1] > s[..., 0] + 0.06) & (s[..., 1] > 0.28)
+    # leaves: 1-unit thick, wrapped round the hat (right one) / drooping over the brim (lower one)
+    zr = -7.9 + np.clip(C - 33.0, 0, 9) * 0.9
+    leaf_r = (C > 32.5) & (C < 35.7) & (R > 9.3) & (R < 12.9) & teal & (Z > zr - 0.55) & (Z < zr + 0.55)
+    zl = -9.7 - (R - 12.3) * 0.5
+    leaf_b = (C > 28.7) & (C < 31.5) & (R > 12.3) & (R < 14.2) & teal & (Z > zl - 0.55) & (Z < zl + 0.55)
+    v.add(body | stem | flower | leaf_r | leaf_b)
+    ang = np.arctan2(Z - zc, C - cc)
+    rib = np.floor((ang / (2 * np.pi) + 0.5) * 12)
+    oc = pick(ORANGE, (rib % 2) * 0.5 + hv(v, 3) * 0.45) * np.clip(1.12 - np.abs(R - rc + 0.4) * 0.14, 0.7, 1.1)[..., None]
+    v.paint(body, oc, up=oc * 0.92, down=oc * 0.7)
+    okb = (s[..., 0] > s[..., 2] * 1.2)
+    m = v.front() & body & okb
+    v.paint(m, s, up=s, down=s * 0.75)
+    v.dec |= m & (np.abs(C - cc) < 1.9) & (np.abs(R - rc) < 1.5)
+    v.paint(stem, pick(pal(['#2E3A22', '#3A2A18', '#27301C']), hv(v, 4)))
+    v.paint(flower, pick(pal(['#E88AA8', '#F4B0C4', '#DC7096']), hv(v, 5)))
+    lc = np.where(teal[..., None], s, HEX('#3FA890'))
+    v.paint(leaf_r | leaf_b, lc, up=lc * 1.08, down=lc * 0.75)
+    return v
 
 
-hair_back = hair_vox
+# ================================================================== head
+def make_head():
+    v = Vox(17, 41, 15, 39, -9, 10)
+    C, R, Z = v.C, v.R, v.Z
+    rowi = np.floor(R)
+
+    def se(cc, a, b, n, zc=0.0):
+        return (np.abs((C - cc) / a) ** n + np.abs((Z - zc) / b) ** n) <= 1
+    hair = ((rowi >= 16) & (rowi <= 19) & se(28, 7, 7, 2.6)) | ((rowi >= 20) & (rowi <= 21) & se(28.5, 8.5, 7.4, 2.6)) \
+        | ((rowi >= 22) & (rowi <= 23) & se(28.5, 7.5, 7, 2.6)) | ((rowi == 24) & se(28, 8, 6.6, 2.6))
+    hair |= (rowi == 21) & (C > 37) & (C < 38) & (Z > -4) & (Z < 2)
+    # front locks over the shoulders
+    hair |= (((C > 22) & (C < 24)) | ((C > 31.6) & (C < 33.6))) & (R > 25) & (R < 26.6) & (Z > -7) & (Z < -4.5)
+    # room for the neck / mask below the face
+    hair &= ~((C > 25) & (C < 31) & (rowi >= 21) & (Z < 1))
+    hair &= ~((np.abs(C - 28.15) < 4.2) & (rowi >= 22) & (np.abs(Z) < 4.2))
+    # mane down the back: a thick tapering mass
+    for r0, r1, w, d in ((22, 26, 8.0, 3.6), (26, 29, 6.6, 3.3), (29, 32, 5.0, 3.0), (32, 34, 3.4, 2.6), (34, 36, 1.9, 2.2), (36, 37.2, 0.9, 1.6)):
+        hair |= (R > r0) & (R < r1) & ((np.abs((C - 28.5) / w) ** 2.4 + np.abs((Z - 5.2) / d) ** 2.4) <= 1) & (Z > 3.0)
+    # face window: bangs stay one voxel proud of the skin
+    win = np.zeros(v.occ.shape, bool)
+    for c0, c1, r in ((28, 31, 17), (27, 31, 18), (26, 31, 19), (25, 31, 20)):
+        win |= (C > c0) & (C < c1) & (rowi == r)
+    hair &= ~(win & (Z < -6))
+    v.add(hair)
+    # ---- hair colours: white crown -> cyan -> blue tips, in vertical strands with the odd dark voxel
+    strand = hashf(v.I, v.K, 0, 29)
+    cell = hv(v, 31)
+    lat = np.clip(np.sqrt((C - 28.3) ** 2 + Z ** 2) / 9.0, 0, 1)
+    t = 0.03 + np.clip((R - 18.0) / 19.0, 0, 1) ** 1.2 * 0.9 + lat * 0.16 + (strand - 0.5) * 0.2 + (cell - 0.5) * 0.12 + (cell > 0.84) * 0.26
+    hc = ramp(t, HAIR_RAMP)
+    v.paint(hair, hc, up=hc, down=hc * 0.8)
+    s = spr(v)
+    ok = (lum(s) > 0.55) & (s[..., 1] > 0.36)
+    m = v.front() & hair & ok & ~win & (Z < 0)
+    sb = 1 - (1 - s) * 0.72            # the art's hair is almost white: lift the sampled cells a little
+    v.paint(m, sb, up=sb, down=sb * 0.8)
+    # ---- face (skin voxels carry the eye decal)
+    face = v.front() & win
+    v.paint(face, HEX('#E6CCEE'))
+    v.dec |= face
+    # ---- mask collar
+    collar = (C > 25) & (C < 31) & (rowi >= 21) & (rowi <= 24) & (Z > -7) & (Z < 0)
+    v.add(collar)
+    cc_ = pick(pal(['#22104A', '#2A1458', '#1C0C40']), hv(v, 8))
+    cc_ = np.where((rowi == 21)[..., None], HEX('#1E5A6A'), cc_)
+    v.paint(collar, cc_, up=HEX('#1E5A6A') * np.ones(3), down=cc_ * 0.8)
+    v.dec |= v.front() & collar
+    return v
 
 
-# ------------------------------------------------------------------ build
+# ================================================================== body
+def make_body():
+    v = Vox(13, 44, 24, 46, -11, 11)
+    C, R, Z = v.C, v.R, v.Z
+    rowi = np.floor(R)
+    cc, zc = 28.15, 0.4
+    aw = {25: 4.0, 26: 4.3, 27: 4.3, 28: 4.3, 29: 4.4, 30: 4.5, 31: 4.7, 32: 5.0, 33: 5.4, 34: 5.8, 35: 6.4, 36: 7.1, 37: 7.8,
+          38: 8.5, 39: 9.0, 40: 9.5, 41: 9.9, 42: 10.2, 43: 10.5, 44: 10.75, 45: 10.9}
+    a = np.zeros(R.shape)
+    for r, w in aw.items():
+        a[rowi == r] = w
+    b = np.where(rowi <= 30, 3.6, a * 0.72)
+    body = (a > 0) & ((np.abs((C - cc) / np.maximum(a, 1e-3)) ** 2.3 + np.abs((Z - zc) / np.maximum(b, 1e-3)) ** 2.3) <= 1)
+    v.add(body)
+    # brooch: a little lump proud of the chest
+    fr = v.front()
+    zfront = np.where(fr, Z, 99).min(axis=2, keepdims=True)
+    brooch = (C > 27) & (C < 29) & (rowi >= 25) & (rowi <= 28) & (Z > zfront - 1.5) & (Z < zfront - 0.5)
+    v.add(brooch)
+    # ---- colours: dark robe with vertical folds running round the cone
+    ang = np.arctan2(Z - zc, C - cc)
+    sec = np.floor((ang / (2 * np.pi) + 0.5) * 30).astype(np.int64)
+    fold = hashf(sec, 0, 0, 11)
+    rc = pick(ROBE, fold * 0.94 + hv(v, 12) * 0.06) * np.where(rowi >= 44, 0.82, 1.0)[..., None]
+    v.paint(v.occ, rc, up=rc * 1.1, down=HEX('#0E0820') * np.ones(3))
+    s = spr(v)
+    flame = (s[..., 0] > 0.40) & (s[..., 2] > 0.72) & (s[..., 1] < 0.45)
+    edge = np.abs(C - cc) > a - 1.6
+    m = v.front() & ~(flame & edge) & (lum(s) > 0.07)
+    v.paint(m, s, up=s * 1.1, down=s * 0.75)
+    # the ornate chest panel (thin gold A-lines, brooch, chevron) is finer than one voxel, so those
+    # front voxels carry a finer painted decal
+    fr = v.front()
+    v.dec |= fr & (C > 23) & (C < 33.4) & (rowi >= 25) & (rowi <= 35)
+    return v
+
+
+def make_arm(mirror):
+    """one arm with its hanging bell sleeve; mirror=False: picture-left (her right)"""
+    v = Vox(13, 26, 24, 40, -5, 5)
+    C, R, Z = v.C, v.R, v.Z
+    rowi = np.floor(R)
+    spans = {26: (21, 24), 27: (20, 24), 28: (19, 24), 29: (17, 23.6), 30: (17, 23.2), 31: (15, 22.8), 32: (15, 22.4), 33: (15, 22.0),
+             34: (15, 21.6), 35: (15, 21.2), 36: (15, 20.8), 37: (15.4, 20.2), 38: (16, 18.6)}
+    dep = {26: 2.4, 27: 2.6, 28: 2.9, 29: 3.2, 30: 3.4, 31: 3.7, 32: 3.9, 33: 4.0, 34: 4.0, 35: 3.9, 36: 3.7, 37: 3.2, 38: 2.2}
+    m = np.zeros(v.occ.shape, bool)
+    for r, (c0, c1) in spans.items():
+        mid, hw = (c0 + c1) / 2, (c1 - c0) / 2
+        m |= (rowi == r) & ((np.abs((C - mid) / hw) ** 3 + np.abs(Z / dep[r]) ** 3) <= 1)
+    v.add(m)
+    # the sleeve really opens toward the front: hollow out the bell
+    hole = (C > 16) & (C < 19.6) & (rowi >= 32) & (rowi <= 36) & (Z < -0.5)
+    hole &= ((C - 17.8) / 1.9) ** 2 + ((R - 34.5) / 2.7) ** 2 <= 1
+    v.cut(hole)
+    # ---- colours (bands run all the way round the arm)
+    n = hv(v, 3)
+    purple = pick(pal(['#4420A0', '#5028B4', '#5C30C8', '#3A1A8C']), n)
+    bell = pick(pal(['#1A1050', '#221464', '#2A1A78', '#160C44']), hv(v, 4, (1, 2, 1)))
+    lilac = pick(pal(['#E8C4F2', '#D8A4EA', '#C486E2', '#F4DEFA', '#B070DA']), hv(v, 5))
+    teal = pick(pal(['#62BCD4', '#7CD0E2', '#4A94C4', '#8AD8D0']), hv(v, 6))
+    col = purple.copy()
+    isbell = (rowi >= 31) & (C < 20.6)
+    col[isbell] = bell[isbell]
+    cuff = (rowi >= 29) & (rowi <= 30) & (C < 21)
+    col[cuff] = lilac[cuff]
+    ruff = (((rowi == 28) & (C < 22)) | ((rowi == 27) & (C < 21.6)))
+    col[ruff] = teal[ruff]
+    v.paint(v.occ, col, up=col * 1.08, down=col * 0.72)
+    # inside of the bell is almost black
+    p = np.pad(v.occ, 1)
+    near = np.zeros(v.occ.shape, bool)
+    hp = np.pad(hole, 1)
+    for d in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
+        near |= hp[1 + d[0]:1 + d[0] + v.nx, 1 + d[1]:1 + d[1] + v.ny, 1 + d[2]:1 + d[2] + v.nz]
+    inner = v.occ & near & (Z > -0.5) | (v.occ & near & (np.abs(C - 17.8) < 1.6) & (np.abs(R - 34.5) < 2.4))
+    nav = pick(NAVY, hv(v, 7))
+    v.paint(inner, nav, up=nav, down=nav)
+    if mirror:
+        v.occ = v.occ[::-1].copy()
+        v.col, v.colU, v.colD, v.dec = v.col[::-1].copy(), v.colU[::-1].copy(), v.colD[::-1].copy(), v.dec[::-1].copy()
+        v.c0 = 56.3 - (13 + v.nx)
+        v.C = v.c0 + (v.I + .5)
+    return v
+
+
+# ================================================================== raven
+def make_raven_body():
+    v = Vox(6, 16, 4.5, 13.5, -3, 4, 0.5)
+    C, R, Z = v.C, v.R, v.Z
+    body = ((C - 11.9) / 2.05) ** 2 + ((R - 7.2) / 2.5) ** 2 + (Z / 1.9) ** 2 <= 1
+    legs = np.zeros(v.occ.shape, bool)
+    feet = np.zeros(v.occ.shape, bool)
+    for c0 in (10.0, 12.4):
+        legs |= (C > c0) & (C < c0 + 0.5) & (R > 9.3) & (R < 11.0) & (np.abs(Z) < 0.3)
+        feet |= (C > c0 - 0.5) & (C < c0 + 1.0) & (R > 10.9) & (R < 11.9) & (Z > -1.4) & (Z < 0.5)
+    # tail: a fan of feathers sweeping down and back
+    tl = poly_mask(v, [(7.0, 10.0), (8.5, 9.3), (10.5, 9.4), (13.0, 9.3), (14.6, 9.4), (15.2, 10.6), (14.4, 11.6), (13.6, 11.0),
+                       (12.0, 10.4), (10.9, 12.6), (9.6, 12.9), (9.3, 12.4), (8.4, 12.9), (8.0, 12.2), (7.2, 12.2), (6.6, 10.8)])
+    zt = 1.1 + (R - 9.3) * 0.35
+    tail = tl[:, :, None] & (Z > zt - 0.55) & (Z < zt + 0.55)
+    v.add(body | legs | feet | tail)
+    s = spr(v)
+    rc = pick(RAVEN, hv(v, 3))
+    v.paint(v.occ, rc, up=rc * 1.1, down=rc * 0.75)
+    m = v.front() & (body | tail) & (lum(s) > 0.16)
+    v.paint(m, s, up=s, down=s * 0.75)
+    lg = np.where(((s[..., 0] > s[..., 2]) & (s[..., 0] > 0.25))[..., None], s, HEX('#7A4A30'))
+    v.paint(legs | feet, lg)
+    return v
+
+
+def make_raven_head():
+    v = Vox(9, 15, 1, 6.5, -4.5, 2, 0.5)
+    C, R, Z = v.C, v.R, v.Z
+    skull = (np.abs((C - 11.9) / 2.1) ** 3 + np.abs((R - 3.2) / 1.85) ** 3 + np.abs((Z + 0.8) / 2.1) ** 3) <= 1
+    beak = (C > 11.9) & (C < 12.9 - (R > 5.0) * 0.5) & (R > 4.0) & (R < 5.9) & (Z > -3.9 + (R - 4.0) * 0.45) & (Z < -2.4)
+    v.add(skull | beak)
+    s = spr(v)
+    bc = pick(BONE, hv(v, 3)) * np.where(Z > 0.2, 0.9, 1.0)[..., None]
+    v.paint(skull, bc, up=bc, down=bc * 0.8)
+    m = v.front() & skull & (lum(s) > 0.2)
+    v.paint(m, s, up=s, down=s * 0.8)
+    v.dec |= m & (R < 4.6)
+    kc = ramp((R - 4.0) / 1.9, [(0, '#D9B49A'), (0.5, '#E0A080'), (1, '#D8788A')]) * (0.94 + 0.12 * hv(v, 5))[..., None]
+    v.paint(beak, kc, up=kc, down=kc * 0.8)
+    return v
+
+
+def make_wing(poly, c0, c1, r0, r1, sx, sy):
+    """feathered wing: a curved sheet, two voxels thick at the root"""
+    v = Vox(c0, c1, r0, r1, -0.5, 3.5, 0.5)
+    C, R, Z = v.C, v.R, v.Z
+    pm = poly_mask(v, poly)[:, :, None]
+    dist = np.sqrt((C - sx) ** 2 + (R - sy) ** 2)
+    zc = 0.35 + 0.16 * dist
+    thick = np.where(dist < 3.2, 0.8, 0.52)
+    v.add(pm & (np.abs(Z - zc) < thick))
+    s = spr(v, 1.0)
+    rc = pick(RAVEN, hv(v, 3, (2, 2, 1)))
+    col = np.where((lum(s) > 0.17)[..., None], s, rc)
+    v.paint(v.occ, col, up=col * 1.08, down=col * 0.78)
+    return v
+
+
+# ================================================================== assemble
 def build():
     m = Model('geometry.raven_witch')
     m.bone('root', pivot=(0, 0, 0))
-
-    def G(bone, c0, c1, r0, r1, z0, z1, mat, **kw):
-        """box given in grid coordinates (cols c0..c1, rows r0..r1 measured downward)"""
-        kw.setdefault('ds', 2)
-        return bone.box(c0 - CX, GY - r1, z0, c1 - CX, GY - r0, z1, mat, **kw)
-
     body = m.bone('body', 'root', pivot=(0, GY - 31, 0))
     head = m.bone('head', 'body', pivot=(0, GY - 25, 0))
-
-    # ================= head / hair =================
-    HAIR_L = HAIR_TOP = hair_vox
-    # main volume; its front face carries the face itself (projection)
-    G(head, 21, 35, 16, 20, -6, 7, {'north': proj, 'south': hair_back, 'east': HAIR_L, 'west': HAIR_L, 'up': HAIR_TOP, 'down': HAIR_L}, d=8)
-    G(head, 20, 37, 20, 22, -6, 7, {'north': proj, 'south': hair_back, 'east': HAIR_L, 'west': HAIR_L, 'up': HAIR_L, 'down': HAIR_L}, d=8)
-    G(head, 37, 38, 21, 22, -6, 5, HAIR_L)
-    # front layer (one voxel proud of the face) with the face window left open
-    FR = {'north': proj, 'south': None, 'east': HAIR_L, 'west': HAIR_L, 'up': HAIR_L, 'down': HAIR_L}
-    for c0, c1, r0, r1 in ((21, 35, 16, 17), (21, 28, 17, 18), (31, 35, 17, 18), (21, 27, 18, 19), (31, 35, 18, 19),
-                           (21, 26, 19, 20), (31, 36, 19, 20), (20, 25, 20, 21), (31, 37, 20, 21), (20, 25, 21, 22), (31, 38, 21, 22)):
-        G(head, c0, c1, r0, r1, -7, -6, FR, d=8)
-    # side locks falling over the shoulders
-    for c0, c1, r0, r1, z0, z1 in ((21, 25, 22, 24, -7, 7), (20, 24, 24, 25, -7, 6), (22.5, 24, 25, 26.5, -7, -5),
-                                   (31, 36, 22, 24, -7, 7), (32, 36, 24, 25, -7, 6), (31.6, 33.2, 24, 26.5, -7, -5)):
-        G(head, c0, c1, r0, r1, z0, z1, {'north': proj, 'south': hair_back, 'east': HAIR_L, 'west': HAIR_L, 'up': HAIR_L, 'down': HAIR_L})
-    # long cascade down the back
-    for c0, c1, r0, r1 in ((20.5, 36.5, 22, 26), (22, 35, 26, 29), (23.5, 33.5, 29, 32), (25.2, 31.8, 32, 34.2), (26.8, 30.2, 34.2, 36), (27.8, 29.2, 36, 37.2)):
-        G(head, c0, c1, r0, r1, 4.0, 7.6, hair_back)
-
-    # mask collar
-    COL = patch(25.2, 26.4, 21, 25.5)
-    G(head, 25, 31, 21, 25.5, -6.6, 1.0, {'north': proj, 'south': COL, 'east': COL, 'west': COL, 'up': COL, 'down': COL}, d=8)
-
-    # ================= hat =================
     hat = m.bone('hat', 'head', pivot=(0.5, GY - 16, 0))
-    TOP = rowpick([25, 26, 27, 28, 29, 30], 1.2, 5.6)
-    MID = rowpick([26, 27, 31, 32], 5.7, 8.2, row_up=6.2)
-    BAND = rowpick([24, 25, 26, 27], 8.7, 9.9)
-    BASE = rowpick([23, 24, 25, 26, 27], 10, 12.5, row_up=10.5)
-    G(hat, 25, 31, 1.15, 5.7, -3, 3, TOP)
-    G(hat, 31, 33, 4.6, 6.0, -2.5, 2.5, rowpick([31, 32], 4.7, 6))
-    G(hat, 23.5, 34, 5.6, 8.8, -5.25, 5.25, MID)
-    G(hat, 23.3, 34.2, 8.7, 10.0, -5.45, 5.45, BAND)
-    G(hat, 22.4, 35.6, 10, 12.6, -6.6, 6.6, BASE)
-    G(hat, 20.6, 37.2, 12.4, 13.7, -8.3, 8.3, rowpick([21, 22, 23, 24, 25, 26, 27, 34, 35, 36], 12.5, 13.6))
-    G(hat, 17, 39.5, 13.4, 15.0, -12, 12, {'north': proj, 'south': proj, 'east': brim_strip, 'west': brim_strip, 'up': brim_top, 'down': None})
-    # brim strips.  Their stepped tops give the slant of the gold rim in the picture; the outer strips
-    # reach further down and form the two drooping ends (outline traced from the picture).
-    TOPS = ((11.8, 14.95, 12.95), (14.95, 17.3, 13.4), (17.3, 21.5, 14.0), (21.5, 25.0, 14.4), (25.0, 34.0, 14.9), (34.0, 39.2, 15.05),
-            (39.2, 41.6, 15.5), (41.6, 42.6, 15.05), (42.6, 44.1, 14.5), (44.1, 45.45, 14.0))
-    BOT = ((11.8, 14.6), (12.0, 15.5), (12.75, 17.0), (14.0, 17.9), (15.0, 18.4), (16.0, 19.0), (17.0, 19.3), (18.6, 19.7), (19.5, 19.9), (21.0, 20.0),
-           (21.01, 16.0), (34.99, 16.0), (35.0, 20.0), (36.1, 19.9), (38.0, 19.65), (39.2, 19.3), (41.0, 19.0), (42.5, 18.5), (43.4, 17.9), (44.5, 17.0), (45.45, 15.6))
-    edges = sorted(set([11.8, 45.45, 21.0, 35.0] + [t[0] for t in TOPS] + [t[1] for t in TOPS] + list(np.arange(12.5, 21.0, 0.5)) + list(np.arange(35.5, 45.4, 0.5))))
-    for c0, c1 in zip(edges[:-1], edges[1:]):
-        if c1 - c0 < 0.05:
-            continue
-        cm = (c0 + c1) / 2
-        rt = [t[2] for t in TOPS if t[0] <= cm < t[1]][0]
-        rb = float(np.interp(cm, [p[0] for p in BOT], [p[1] for p in BOT]))
-        rb = max(round(rb * 4) / 4, rt + 0.6)
-        zh = 16.0 * math.sqrt(max(0.1, 1 - ((cm - 28.4) / 17.2) ** 2))
-        G(hat, c0, c1, rt, rb, -zh, zh, brim_strip)
-
-    # squared spiral on her left: chunky outer ring + cut-out inner hook, tail stepping back to the hat
-    for c0, c1, r0, r1 in ((37.9, 42.7, 6.75, 7.8), (41.7, 42.7, 7.8, 11.1), (37.9, 39.0, 7.8, 10.95), (39.0, 40.5, 10.1, 10.95),
-                           (38.2, 42.7, 11.1, 12.1), (37.1, 38.3, 11.1, 12.1), (36.0, 37.2, 10.6, 11.5), (35.0, 36.1, 9.7, 10.7), (34.0, 35.1, 8.8, 9.8)):
-        G(hat, c0, c1, r0, r1, -0.75, 0.75, wrap())
-    G(hat, 39.0, 41.7, 7.8, 11.1, 0, 0, with_alpha(proj, key=blue_key), faces=('north',), d=8)
-    G(hat, 38.4, 39.8, 12.6, 14.0, -0.4, 0.4, wrap())
-
-    # pumpkin
-    pk = m.bone('pumpkin', 'hat', pivot=(30.4 - CX, GY - 10.8, -8))
-    G(pk, 28.2, 32.7, 9.0, 12.5, -9.8, -6.4, wrap(side=0.95, top=1.0, bottom=0.8, inset=0.35), d=8)
-    G(pk, 29.9, 30.7, 8.2, 9.1, -8.6, -7.8, wrap())
-    G(pk, 28.4, 29.6, 8.5, 9.3, -9.6, -8.8, wrap())
-    G(pk, 32.5, 35.6, 9.3, 12.9, -7.6, -7.6, with_alpha(proj, key=teal_key), faces=('north',), d=8)
-    G(pk, 28.7, 31.5, 12.3, 14.2, -9.9, -9.9, with_alpha(proj, key=teal_key), faces=('north',), d=8)
-
-    # ================= raven (hovering over the brim on her right) =================
+    pk = m.bone('pumpkin', 'hat', pivot=(30.45 - CX, GY - 10.75, -8.3))
     rv = m.bone('raven', 'hat', pivot=(11.9 - CX, GY - 7.2, 0))
-    G(rv, 9.9, 13.9, 4.9, 9.6, -1.8, 1.8, rowpick([10.6, 11.2, 12.2, 12.8], 5.0, 9.5, streak=False), d=8)                  # body
     rh = m.bone('ravenHead', 'raven', pivot=(11.9 - CX, GY - 4.9, -0.5))
-    G(rh, 9.85, 13.95, 1.4, 5.0, -2.8, 1.3, rowpick([11.3, 12.0, 12.4], 1.7, 2.6, streak=False, top=1.0, row_up=1.9), d=8)    # skull
-    G(rh, 11.9, 12.8, 4.0, 5.9, -3.7, -2.8, wrap(), d=8)                                 # beak
-    for c0, c1 in ((10.05, 10.6), (12.35, 12.9)):
-        G(rv, c0, c1, 9.5, 10.9, -0.3, 0.3, wrap())                                      # legs
-    for c0, c1 in ((9.6, 11.0), (11.9, 13.4)):
-        G(rv, c0, c1, 10.7, 11.9, -1.3, 0.4, wrap())                                     # feet
+    wr = m.bone('ravenWingR', 'raven', pivot=(9.9 - CX, GY - 5.6, 0.6))      # the raven's own right wing (picture left)
+    wl = m.bone('ravenWingL', 'raven', pivot=(13.9 - CX, GY - 5.8, 0.6))
+    ra = m.bone('rightArm', 'body', pivot=(23.8 - CX, GY - 26.4, 0))
+    la = m.bone('leftArm', 'body', pivot=(32.5 - CX, GY - 26.4, 0))
+
     LW = [(9.95, 4.6), (9.4, 3.5), (8.8, 2.8), (8.1, 2.1), (7.6, 1.4), (6.8, 0.6), (5.2, 0.0), (4.0, 0.0), (3.2, 0.2), (2.9, 1.6), (3.3, 1.5),
           (3.4, 2.9), (3.9, 2.8), (3.6, 4.3), (4.4, 4.2), (4.4, 5.6), (5.3, 5.4), (5.4, 6.6), (6.4, 6.4), (6.6, 7.6), (7.6, 7.5),
           (7.9, 8.4), (8.8, 8.2), (9.2, 9.0), (9.9, 8.6)]
     RW = [(13.9, 5.3), (15.0, 5.2), (16.0, 5.0), (17.2, 4.6), (18.3, 4.2), (20.3, 3.1), (20.2, 4.2), (20.0, 5.0), (19.0, 5.6),
           (19.2, 6.6), (18.0, 6.6), (17.8, 7.6), (16.6, 7.6), (16.2, 8.5), (15.2, 8.6), (14.6, 9.0), (13.9, 8.6)]
-    TL = [(7.0, 10.0), (8.5, 9.3), (10.5, 9.4), (13.0, 9.3), (14.6, 9.4), (15.2, 10.6), (14.4, 11.6), (13.6, 11.0), (12.0, 10.4), (10.9, 12.6), (9.6, 12.9), (9.3, 12.4), (8.4, 12.9), (8.0, 12.2), (7.2, 12.2), (6.6, 10.8)]
-    wl = m.bone('ravenWingR', 'raven', pivot=(9.9 - CX, GY - 5.6, 0.6))      # the raven's own right wing (picture left)
-    G(wl, 2.4, 10.2, 0.0, 9.4, 0.6, 0.6, with_alpha(proj, poly=LW), faces=('north',), d=8)
-    wr = m.bone('ravenWingL', 'raven', pivot=(13.9 - CX, GY - 5.8, 0.6))
-    G(wr, 13.6, 20.6, 2.8, 9.3, 0.6, 0.6, with_alpha(proj, poly=RW), faces=('north',), d=8)
-    G(rv, 6.4, 15.4, 9.1, 13.1, 1.2, 1.2, with_alpha(proj, poly=TL), faces=('north',), d=8)
-
-    # ================= body =================
-    ROBE = rowpick([25, 26, 27, 28, 29, 30, 31], 33.2, 45.6)
-    G(body, 24, 32.3, 25.5, 31, -4.5, 4.0, {'north': proj, 'south': ROBE, 'east': ROBE, 'west': ROBE, 'up': ROBE, 'down': None}, d=8)
-    G(body, 24, 32.3, 24, 25.5, -4.5, 4.0, {'north': proj, 'south': ROBE, 'east': ROBE, 'west': ROBE, 'up': ROBE, 'down': None}, d=8)   # neck / shoulders
-    G(body, 26.8, 29.0, 25.3, 28.7, -5.6, -4.5, wrap(), d=8)                             # brooch
-    G(body, 26.8, 29.4, 29.8, 32.7, -5.3, -4.4, wrap(), d=8)                             # chevron ornament
-    for r0, r1, c0, c1, zh, cols in ((28.8, 31, 20.6, 35.7, 3.2, [21, 22, 23, 33, 34, 35]), (31, 35, 20.0, 36.3, 4.0, [20, 21, 22, 23, 33, 34, 35]),
-                                     (35, 37, 20.0, 36.3, 4.6, [22, 23, 25, 26, 28, 29, 30, 31, 33]), (37, 39, 19.5, 36.8, 5.2, [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]),
-                                     (39, 41, 18.7, 37.5, 5.9, [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34]),
-                                     (41, 43.5, 18.0, 38.2, 6.6, [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]),
-                                     (43.5, 45.8, 17.3, 39.0, 7.3, [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36])):
-        mt = rowpick(cols, r0, r1)
-        G(body, c0, c1, r0, r1, 0.4 - zh, 0.4 + zh, {'north': proj, 'south': mt, 'east': mt, 'west': mt, 'up': mt, 'down': flat('#120A22')})
-
-    # ================= arms (A-pose with hanging bell sleeves) =================
-    def arm(name, mir):
-        def mc(c0, c1):
-            return (c0, c1) if not mir else (56.3 - c1, 56.3 - c0)
-        px = (mc(23.6, 24.0)[0] if not mir else mc(23.6, 24.0)[1]) - CX
-        a = m.bone(name, 'body', pivot=(px, GY - 26.4, 0))
-        for c0, c1, r0, r1, zh in ((21, 24, 25.8, 28.8, 3.4), (19, 22, 27, 30, 3.5), (17, 20.6, 29, 31.4, 3.7), (14.9, 20.0, 31.2, 37.4, 4.0), (15.8, 18.4, 37.4, 38.2, 2.4)):
-            a0, a1 = mc(c0, c1)
-            G(a, a0, a1, r0, r1, -zh, zh, wrap())
-    arm('rightArm', False)
-    arm('leftArm', True)
+    stats = {}
+    for name, bone, vox, dc in (('hat', hat, make_hat(), None), ('brim', hat, make_brim(), None), ('spiral', hat, make_spiral(), None), ('pumpkin', pk, make_pumpkin(), decal),
+                                ('head', head, make_head(), decal), ('body', body, make_body(), decal),
+                                ('rightArm', ra, make_arm(False), None), ('leftArm', la, make_arm(True), None),
+                                ('raven', rv, make_raven_body(), None), ('ravenHead', rh, make_raven_head(), decal),
+                                ('wingR', wr, make_wing(LW, 2, 10.5, 0, 9.5, 9.9, 5.4), None),
+                                ('wingL', wl, make_wing(RW, 13.5, 21, 2.5, 9.5, 13.9, 5.6), None)):
+        stats[name] = (vox.emit(bone, dc), int(vox.occ.sum()))
+    m.stats = stats
     return m
 
 
@@ -410,5 +480,5 @@ if __name__ == '__main__':
     atlas.save(os.path.join(out, 'raven_witch.png'))
     with open(os.path.join(out, 'raven_witch.geo.json'), 'w') as fh:
         json.dump(m.to_json(bounds=(7, 6, 2)), fh, separators=(',', ':'))
-    n = sum(len(b.cubes) for b in m.bones)
-    print('bones', len(m.bones), 'cubes', n, 'atlas', atlas.size)
+    print({k: v for k, v in m.stats.items()})
+    print('bones', len(m.bones), 'cubes', sum(len(b.cubes) for b in m.bones), 'atlas', atlas.size)

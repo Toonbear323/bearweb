@@ -107,7 +107,7 @@ W(os.path.join(BP, 'entities', 'raven_witch.json'), {
 
 # ---- pack icons from the simulated front view
 tex = atlas
-icon = render(geo, tex, yaw=0, pitch=0, dist=400, target=(0, 23, 0), size=(256, 256), ortho=5.2, bg=(22, 10, 44), ss=4)
+icon = render(geo, tex, yaw=28, pitch=8, dist=150, target=(0, 23, 0), size=(256, 256), fov=24, bg=(22, 10, 44), ss=4)
 for p in (RP, BP):
     icon.save(os.path.join(p, 'pack_icon.png'))
 

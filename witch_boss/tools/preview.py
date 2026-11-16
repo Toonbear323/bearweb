@@ -11,7 +11,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from mclib import load, render  # noqa: E402
 
-PITCH, OX, OY, CX, GY = 21.8, -3.1, -3.1, 28.0, 45.8
+PITCH, OX, OY, CX, GY = 21.8, -3.1, -3.1, 28.0, 46.0
 BG = (10, 6, 22)
 # orthographic camera lined up pixel-for-pixel with ../ref/front.png
 TY = 22.8

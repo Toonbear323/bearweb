@@ -1,0 +1,85 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.raven_witch.attack": {
+      "initial_state": "default",
+      "states": {
+        "default": {
+          "transitions": [
+            {
+              "hex": "query.variant == 1 || query.variant == 11"
+            },
+            {
+              "pumpkin": "query.variant == 2 || query.variant == 12"
+            },
+            {
+              "raven": "query.variant == 3 || query.variant == 13"
+            },
+            {
+              "nova": "query.variant == 4 || query.variant == 14"
+            },
+            {
+              "enrage": "query.variant == 9"
+            }
+          ],
+          "blend_transition": 0.2
+        },
+        "hex": {
+          "animations": [
+            "cast_hex"
+          ],
+          "blend_transition": 0.15,
+          "transitions": [
+            {
+              "default": "query.variant != 1 && query.variant != 11"
+            }
+          ]
+        },
+        "pumpkin": {
+          "animations": [
+            "cast_pumpkin"
+          ],
+          "blend_transition": 0.15,
+          "transitions": [
+            {
+              "default": "query.variant != 2 && query.variant != 12"
+            }
+          ]
+        },
+        "raven": {
+          "animations": [
+            "cast_raven"
+          ],
+          "blend_transition": 0.15,
+          "transitions": [
+            {
+              "default": "query.variant != 3 && query.variant != 13"
+            }
+          ]
+        },
+        "nova": {
+          "animations": [
+            "cast_nova"
+          ],
+          "blend_transition": 0.15,
+          "transitions": [
+            {
+              "default": "query.variant != 4 && query.variant != 14"
+            }
+          ]
+        },
+        "enrage": {
+          "animations": [
+            "enrage"
+          ],
+          "blend_transition": 0.15,
+          "transitions": [
+            {
+              "default": "query.variant != 9"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

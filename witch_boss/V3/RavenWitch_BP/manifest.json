@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Raven Witch Boss V3 [BP]",
+    "description": "까마귀 마녀 보스 - 보스전 패턴 (V3)",
+    "uuid": "c3e9b7a1-2f4d-4a8c-8b16-7d5e9f0a3b03",
+    "version": [
+      1,
+      0,
+      2
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      80
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "9b2f6d47-e1a8-4c35-a7d2-4e8c0b6f5a04",
+      "version": [
+        1,
+        0,
+        2
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "6f0c1a52-8d3b-4c1e-9a47-2b5e7c9d1f01",
+      "version": [
+        1,
+        0,
+        2
+      ]
+    }
+  ]
+}

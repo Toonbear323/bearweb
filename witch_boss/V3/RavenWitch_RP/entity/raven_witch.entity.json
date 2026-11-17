@@ -1,0 +1,55 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bear:raven_witch",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/raven_witch"
+      },
+      "geometry": {
+        "default": "geometry.raven_witch"
+      },
+      "render_controllers": [
+        "controller.render.raven_witch"
+      ],
+      "spawn_egg": {
+        "base_color": "#4B1E8A",
+        "overlay_color": "#F08A1A"
+      },
+      "particle_effects": {
+        "aura": "bear:witch_aura",
+        "rage": "bear:witch_rage"
+      },
+      "scripts": {
+        "animate": [
+          "idle",
+          {
+            "move": "math.min(1.0, query.modified_move_speed * 2.5)"
+          },
+          "look_at_target",
+          "attack",
+          "aura",
+          {
+            "rage_aura": "query.mark_variant == 1"
+          }
+        ]
+      },
+      "animations": {
+        "idle": "animation.raven_witch.idle",
+        "move": "animation.raven_witch.move",
+        "look_at_target": "animation.common.look_at_target",
+        "attack": "controller.animation.raven_witch.attack",
+        "aura": "animation.raven_witch.aura",
+        "rage_aura": "animation.raven_witch.rage_aura",
+        "cast_hex": "animation.raven_witch.cast_hex",
+        "cast_pumpkin": "animation.raven_witch.cast_pumpkin",
+        "cast_raven": "animation.raven_witch.cast_raven",
+        "cast_nova": "animation.raven_witch.cast_nova",
+        "enrage": "animation.raven_witch.enrage"
+      }
+    }
+  }
+}

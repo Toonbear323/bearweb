@@ -1,0 +1,7 @@
+entity.bear:raven_witch.name=Raven Witch
+item.spawn_egg.entity.bear:raven_witch.name=Raven Witch Spawn Egg
+entity.bear:mark_hex.name=Hex Circle
+entity.bear:mark_seed.name=Pumpkin Bomb
+entity.bear:mark_wave.name=Raven Dive
+entity.bear:mark_nova.name=Nova
+entity.bear:mark_ring.name=Nova Ring

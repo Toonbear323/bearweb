@@ -1,0 +1,7 @@
+entity.bear:raven_witch.name=까마귀 마녀
+item.spawn_egg.entity.bear:raven_witch.name=까마귀 마녀 생성 알
+entity.bear:mark_hex.name=저주 마법진
+entity.bear:mark_seed.name=호박 폭탄
+entity.bear:mark_wave.name=까마귀 돌진
+entity.bear:mark_nova.name=폭발
+entity.bear:mark_ring.name=폭발 고리

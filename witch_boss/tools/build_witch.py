@@ -269,12 +269,21 @@ def make_head():
     for c0, c1, r in ((28, 31, 17), (27, 31, 18), (26, 31, 19), (25, 31, 20)):
         win |= (C > c0) & (C < c1) & (rowi == r)
     hair &= ~(win & (Z < -6))
+    # strand relief: every third column of the back surface is carved one voxel deep, so the
+    # mane reads as separate locks (and the locks end at different lengths)
+    hp_ = np.pad(hair, ((0, 0), (0, 0), (0, 1)))[:, :, 1:]
+    coli = np.floor(C).astype(int)
+    groove = hair & ~hp_ & (Z > 3) & (rowi >= 20) & (coli % 3 == 1)
+    hair &= ~groove
+    hd_ = np.pad(hair, ((0, 0), (0, 1), (0, 0)))[:, 1:, :]
+    hair &= ~(hair & ~hd_ & (Z > 3) & (rowi >= 27) & (coli % 3 == 2) & (hashf(v.I, 0, 0, 77) > 0.4))
     v.add(hair)
+    v.parts = {'mane': hair & (R > 25) & (Z > 3.0), 'tip': hair & (R > 31) & (Z > 3.0)}
     # ---- hair colours: white crown -> cyan -> blue tips, in vertical strands with the odd dark voxel
     strand = hashf(v.I, v.K, 0, 29)
     cell = hv(v, 31)
     lat = np.clip(np.sqrt((C - 28.3) ** 2 + Z ** 2) / 9.0, 0, 1)
-    t = 0.03 + np.clip((R - 18.0) / 19.0, 0, 1) ** 1.2 * 0.9 + lat * 0.16 + (strand - 0.5) * 0.2 + (cell - 0.5) * 0.12 + (cell > 0.84) * 0.26
+    t = 0.03 + np.clip((R - 18.0) / 19.0, 0, 1) ** 1.2 * 0.9 + lat * 0.16 + (strand - 0.5) * 0.2 + (cell - 0.5) * 0.08 + (cell > 0.93) * 0.2 + ((coli % 3 == 0) & (Z > 3)) * 0.07
     hc = ramp(t, HAIR_RAMP)
     v.paint(hair, hc, up=hc, down=hc * 0.8)
     s = spr(v)
@@ -308,7 +317,11 @@ def make_body():
     for r, w in aw.items():
         a[rowi == r] = w
     b = np.where(rowi <= 30, 3.6, a * 0.72)
-    body = (a > 0) & ((np.abs((C - cc) / np.maximum(a, 1e-3)) ** 2.3 + np.abs((Z - zc) / np.maximum(b, 1e-3)) ** 2.3) <= 1)
+    # twelve pleats run down the skirt: ridges at the front / sides / back, grooves between them
+    ang0 = np.arctan2((Z - zc) / np.maximum(b, 1e-3), (C - cc) / np.maximum(a, 1e-3))
+    pl = 0.5 + 0.5 * np.cos(12 * ang0)
+    shrink = 1 - 0.10 * np.clip((R - 32.5) / 7.0, 0, 1) * (1 - pl)
+    body = (a > 0) & ((np.abs((C - cc) / np.maximum(a * shrink, 1e-3)) ** 2.3 + np.abs((Z - zc) / np.maximum(b * shrink, 1e-3)) ** 2.3) <= 1)
     v.add(body)
     # brooch: a little lump proud of the chest
     fr = v.front()
@@ -316,15 +329,17 @@ def make_body():
     brooch = (C > 27) & (C < 29) & (rowi >= 25) & (rowi <= 28) & (Z > zfront - 1.5) & (Z < zfront - 0.5)
     v.add(brooch)
     # ---- colours: dark robe with vertical folds running round the cone
-    ang = np.arctan2(Z - zc, C - cc)
-    sec = np.floor((ang / (2 * np.pi) + 0.5) * 30).astype(np.int64)
-    fold = hashf(sec, 0, 0, 11)
-    rc = pick(ROBE, fold * 0.94 + hv(v, 12) * 0.06) * np.where(rowi >= 44, 0.82, 1.0)[..., None]
+    sec = np.floor((ang0 / (2 * np.pi) + 0.5) * 12 + 0.5).astype(np.int64)
+    fold = np.clip(0.08 + 0.62 * pl + (hashf(sec, 0, 0, 11) - 0.5) * 0.22 + (hv(v, 12, (1, 3, 1)) - 0.5) * 0.10, 0, 0.83)
+    rc = pick(ROBE, fold) * np.where(rowi >= 44, 0.82, 1.0)[..., None]
     v.paint(v.occ, rc, up=rc * 1.1, down=HEX('#0E0820') * np.ones(3))
     s = spr(v)
     flame = (s[..., 0] > 0.40) & (s[..., 2] > 0.72) & (s[..., 1] < 0.45)
     edge = np.abs(C - cc) > a - 1.6
-    m = v.front() & ~(flame & edge) & (lum(s) > 0.07)
+    glow = (lum(s) > 0.66) & (np.abs(C - cc) > 3.6)          # aura sparks in the picture, not cloth
+    glow |= (lum(s) > 0.5) & (np.abs(C - cc) > 5.0) & (rowi >= 36)
+    side = (rowi >= 30) & (np.abs(C - cc) > a - 0.9) & (np.abs(Z - zc) > 1.5)   # the cone turning away
+    m = v.front() & ~(flame & edge) & ~glow & ~side & (lum(s) > 0.07)
     v.paint(m, s, up=s * 1.1, down=s * 0.75)
     # the ornate chest panel (thin gold A-lines, brooch, chevron) is finer than one voxel, so those
     # front voxels carry a finer painted decal
@@ -397,6 +412,7 @@ def make_raven_body():
     zt = 1.1 + (R - 9.3) * 0.35
     tail = tl[:, :, None] & (Z > zt - 0.55) & (Z < zt + 0.55)
     v.add(body | legs | feet | tail)
+    v.parts = {'tail': tail & ~body}
     s = spr(v)
     rc = pick(RAVEN, hv(v, 3))
     v.paint(v.occ, rc, up=rc * 1.1, down=rc * 0.75)
@@ -440,34 +456,103 @@ def make_wing(poly, c0, c1, r0, r1, sx, sy):
     return v
 
 
-# ================================================================== assemble
+# ================================================================== assemble (rig)
+def P(col, row, z=0.0):
+    """grid position -> model coordinates"""
+    return (col - CX, GY - row, z)
+
+
 def build():
+    """Joint layout (parent -> child):
+    root > body > skirt
+                > torso > head > hat > hatTop > hatTip
+                               |      > pumpkin, spiral > charm
+                               > hairBack > hairBackTip
+                        > rightArm > rightSleeve      (shoulder / elbow)
+                        > leftArm  > leftSleeve
+    root > raven > ravenHead, ravenTail, ravenWingR > ravenWingRTip, ravenWingL > ravenWingLTip
+    """
     m = Model('geometry.raven_witch')
-    m.bone('root', pivot=(0, 0, 0))
-    body = m.bone('body', 'root', pivot=(0, GY - 31, 0))
-    head = m.bone('head', 'body', pivot=(0, GY - 25, 0))
-    hat = m.bone('hat', 'head', pivot=(0.5, GY - 16, 0))
-    pk = m.bone('pumpkin', 'hat', pivot=(30.45 - CX, GY - 10.75, -8.3))
-    rv = m.bone('raven', 'hat', pivot=(11.9 - CX, GY - 7.2, 0))
-    rh = m.bone('ravenHead', 'raven', pivot=(11.9 - CX, GY - 4.9, -0.5))
-    wr = m.bone('ravenWingR', 'raven', pivot=(9.9 - CX, GY - 5.6, 0.6))      # the raven's own right wing (picture left)
-    wl = m.bone('ravenWingL', 'raven', pivot=(13.9 - CX, GY - 5.8, 0.6))
-    ra = m.bone('rightArm', 'body', pivot=(23.8 - CX, GY - 26.4, 0))
-    la = m.bone('leftArm', 'body', pivot=(32.5 - CX, GY - 26.4, 0))
+    B = {}
+
+    def bone(name, parent, pivot):
+        B[name] = m.bone(name, parent, pivot=pivot)
+    bone('root', None, (0, 0, 0))
+    bone('body', 'root', (0.15, 0, 0.4))
+    bone('skirt', 'body', P(28.15, 36, 0.4))
+    bone('torso', 'body', P(28.15, 35.5, 0.4))
+    bone('head', 'torso', P(28.3, 24.5, 0))
+    bone('hat', 'head', P(28.8, 15.5, 0))
+    bone('hatTop', 'hat', P(28.5, 10, 0))
+    bone('hatTip', 'hatTop', P(28.2, 5, 0))
+    bone('pumpkin', 'hat', P(30.45, 12.4, -8.3))
+    bone('spiral', 'hat', P(40.3, 12.1, 0))
+    bone('charm', 'spiral', P(39.1, 12.5, 0))
+    bone('hairBack', 'head', P(28.5, 25, 5.0))
+    bone('hairBackTip', 'hairBack', P(28.5, 31, 5.6))
+    bone('rightArm', 'torso', P(23.6, 26.6, 0))
+    bone('rightSleeve', 'rightArm', P(19.2, 30.8, 0))
+    bone('leftArm', 'torso', P(56.3 - 23.6, 26.6, 0))
+    bone('leftSleeve', 'leftArm', P(56.3 - 19.2, 30.8, 0))
+    bone('raven', 'root', P(11.9, 7.2, 0))
+    bone('ravenHead', 'raven', P(11.9, 4.9, -0.5))
+    bone('ravenTail', 'raven', P(11.9, 9.5, 1.1))
+    bone('ravenWingR', 'raven', P(9.9, 5.6, 0.6))        # the raven's own right wing (picture left)
+    bone('ravenWingRTip', 'ravenWingR', P(6.2, 3.4, 1.2))
+    bone('ravenWingL', 'raven', P(13.9, 5.8, 0.6))
+    bone('ravenWingLTip', 'ravenWingL', P(17.4, 5.0, 1.2))
+    B['body'].locators['aura'] = [0.15, 14.0, 0.4]
+    B['rightSleeve'].locators['hand_r'] = list(P(17.8, 37, -1.0))
+    B['leftSleeve'].locators['hand_l'] = list(P(56.3 - 17.8, 37, -1.0))
 
     LW = [(9.95, 4.6), (9.4, 3.5), (8.8, 2.8), (8.1, 2.1), (7.6, 1.4), (6.8, 0.6), (5.2, 0.0), (4.0, 0.0), (3.2, 0.2), (2.9, 1.6), (3.3, 1.5),
           (3.4, 2.9), (3.9, 2.8), (3.6, 4.3), (4.4, 4.2), (4.4, 5.6), (5.3, 5.4), (5.4, 6.6), (6.4, 6.4), (6.6, 7.6), (7.6, 7.5),
           (7.9, 8.4), (8.8, 8.2), (9.2, 9.0), (9.9, 8.6)]
     RW = [(13.9, 5.3), (15.0, 5.2), (16.0, 5.0), (17.2, 4.6), (18.3, 4.2), (20.3, 3.1), (20.2, 4.2), (20.0, 5.0), (19.0, 5.6),
           (19.2, 6.6), (18.0, 6.6), (17.8, 7.6), (16.6, 7.6), (16.2, 8.5), (15.2, 8.6), (14.6, 9.0), (13.9, 8.6)]
+    parts = []        # (bone, volume, decal)
+
+    # ---- hat: brim + lower tiers / upper tiers / tip
+    hv_ = make_hat()
+    top = hv_.split(hv_.R < 10)
+    tip = top.split(top.R < 5)
+    parts += [('hat', hv_, None), ('hatTop', top, None), ('hatTip', tip, None), ('hat', make_brim(), None)]
+    sp = make_spiral()
+    parts += [('charm', sp.split(sp.R > 12.4), None), ('spiral', sp, None), ('pumpkin', make_pumpkin(), decal)]
+
+    # ---- head, back mane in two segments
+    hd = make_head()
+    mane = hd.split(hd.parts['mane'])
+    mtip = mane.split(hd.parts['tip'])
+    parts += [('head', hd, decal), ('hairBack', mane, None), ('hairBackTip', mtip, None)]
+
+    # ---- robe: torso / skirt with a hidden plug inside the waist joint
+    bd = make_body()
+    plug = bd.eroded(2) & (bd.R > 36) & (bd.R < 38)
+    skirt = bd.split(bd.R > 36)
+    bd.occ |= plug
+    parts += [('torso', bd, decal), ('skirt', skirt, None)]
+
+    # ---- arms: shoulder + elbow
+    for side, mirror in (('right', False), ('left', True)):
+        av = make_arm(mirror)
+        plug = av.eroded(1) & (av.R > 31) & (av.R < 32)
+        sl = av.split(av.R > 31)
+        av.occ |= plug
+        parts += [(side + 'Arm', av, None), (side + 'Sleeve', sl, None)]
+
+    # ---- raven
+    rb = make_raven_body()
+    parts += [('ravenTail', rb.split(rb.parts['tail']), None), ('raven', rb, None), ('ravenHead', make_raven_head(), decal)]
+    wr = make_wing(LW, 2, 10.5, 0, 9.5, 9.9, 5.4)
+    wl = make_wing(RW, 13.5, 21, 2.5, 9.5, 13.9, 5.6)
+    parts += [('ravenWingRTip', wr.split(wr.C < 6.2), None), ('ravenWingR', wr, None),
+              ('ravenWingLTip', wl.split(wl.C > 17.4), None), ('ravenWingL', wl, None)]
+
     stats = {}
-    for name, bone, vox, dc in (('hat', hat, make_hat(), None), ('brim', hat, make_brim(), None), ('spiral', hat, make_spiral(), None), ('pumpkin', pk, make_pumpkin(), decal),
-                                ('head', head, make_head(), decal), ('body', body, make_body(), decal),
-                                ('rightArm', ra, make_arm(False), None), ('leftArm', la, make_arm(True), None),
-                                ('raven', rv, make_raven_body(), None), ('ravenHead', rh, make_raven_head(), decal),
-                                ('wingR', wr, make_wing(LW, 2, 10.5, 0, 9.5, 9.9, 5.4), None),
-                                ('wingL', wl, make_wing(RW, 13.5, 21, 2.5, 9.5, 13.9, 5.6), None)):
-        stats[name] = (vox.emit(bone, dc), int(vox.occ.sum()))
+    for name, vox, dc in parts:
+        n, k = stats.get(name, (0, 0))
+        stats[name] = (n + vox.emit(B[name], dc), k + int(vox.occ.sum()))
     m.stats = stats
     return m
 

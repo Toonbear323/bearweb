@@ -83,6 +83,7 @@ class Bone:
     def __init__(self, name, parent=None, pivot=(0, 0, 0), rot=None):
         self.name, self.parent, self.pivot, self.rot = name, parent, list(pivot), (list(rot) if rot else None)
         self.cubes = []
+        self.locators = {}
 
     def cube(self, origin, size, mat, **kw):
         c = Cube(origin, size, mat, **kw)
@@ -221,6 +222,8 @@ class Model:
                 cubes.append(jc)
             if cubes:
                 jb['cubes'] = cubes
+            if b.locators:
+                jb['locators'] = {k: r(v) for k, v in b.locators.items()}
             bones.append(jb)
         return {
             'format_version': '1.12.0',
@@ -236,7 +239,8 @@ class Model:
 # ----------------------------------------------------------------- renderer
 def load_quads(geo, pose=None):
     """geo: parsed .geo.json  ->  list of (4x3 BB-space corners TL,TR,BR,BL, 4x2 uv, normal)
-    pose: optional {bone: (rx,ry,rz)} extra rotations (JSON) for simulation of animations."""
+    pose: optional {bone: (rx,ry,rz)} or {bone: {'rot':..,'pos':..,'scale':..}} (animation JSON values)
+    for simulating animations."""
     g = geo['minecraft:geometry'][0]
     bones = {b['name']: b for b in g['bones']}
     cache = {}
@@ -246,9 +250,26 @@ def load_quads(geo, pose=None):
             return cache[name]
         b = bones[name]
         rot = list(b.get('rotation', [0, 0, 0]))
+        pos, scl = (0, 0, 0), (1, 1, 1)
         if pose and name in pose:
-            rot = [rot[i] + pose[name][i] for i in range(3)]
-        M = xform(b.get('pivot', [0, 0, 0]), rot)
+            pz = pose[name]
+            if isinstance(pz, dict):
+                pr, pos, scl = pz.get('rot', (0, 0, 0)), pz.get('pos', (0, 0, 0)), pz.get('scale', (1, 1, 1))
+            else:
+                pr = pz
+            rot = [rot[i] + pr[i] for i in range(3)]
+        piv = b.get('pivot', [0, 0, 0])
+        M = xform(piv, rot if any(rot) else [1e-9, 0, 0])
+        if any(abs(a - 1) > 1e-9 for a in scl):       # scale about the pivot, then rotate, then translate
+            S = np.eye(4)
+            S[:3, :3] = np.diag(scl)
+            pp = np.array([-piv[0], piv[1], piv[2]], float)
+            S[:3, 3] = pp - S[:3, :3] @ pp
+            M = M @ S
+        if any(pos):
+            Tm = np.eye(4)
+            Tm[:3, 3] = (-pos[0], pos[1], pos[2])
+            M = Tm @ M
         if b.get('parent'):
             M = bm(b['parent']) @ M
         cache[name] = M

@@ -1,0 +1,168 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.raven_witch.pattern": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "transitions": [
+            {
+              "pat_1": "query.variant == 1"
+            },
+            {
+              "pat_2": "query.variant == 2"
+            },
+            {
+              "pat_3": "query.variant == 3"
+            },
+            {
+              "pat_4": "query.variant == 4"
+            },
+            {
+              "pat_11": "query.variant == 11"
+            },
+            {
+              "pat_12": "query.variant == 12"
+            },
+            {
+              "pat_13": "query.variant == 13"
+            },
+            {
+              "pat_14": "query.variant == 14"
+            },
+            {
+              "pat_9": "query.variant == 9"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "dead": {
+          "on_entry": [
+            "/event entity @e[family=witch_mark,r=64] bear:despawn",
+            "/particle bear:burst_nova ~ ~1 ~",
+            "/playsound mob.wither.death @a[r=64] ~ ~ ~ 2 1.3"
+          ]
+        },
+        "pat_1": {
+          "animations": [
+            "pat_1"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 1"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_2": {
+          "animations": [
+            "pat_2"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 2"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_3": {
+          "animations": [
+            "pat_3"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 3"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_4": {
+          "animations": [
+            "pat_4"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 4"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_11": {
+          "animations": [
+            "pat_11"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 11"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_12": {
+          "animations": [
+            "pat_12"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 12"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_13": {
+          "animations": [
+            "pat_13"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 13"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_14": {
+          "animations": [
+            "pat_14"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 14"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        },
+        "pat_9": {
+          "animations": [
+            "pat_9"
+          ],
+          "transitions": [
+            {
+              "idle": "query.variant != 9"
+            },
+            {
+              "dead": "!query.is_alive"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

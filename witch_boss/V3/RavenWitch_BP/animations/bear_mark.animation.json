@@ -1,0 +1,75 @@
+{
+  "format_version": "1.10.0",
+  "animations": {
+    "animation.bear_mark.hex.life": {
+      "loop": false,
+      "animation_length": 1.95,
+      "timeline": {
+        "1.25": [
+          "/damage @e[r=3,family=!bear_boss] 8 magic",
+          "/particle bear:burst_hex ~ ~ ~",
+          "/playsound random.explode @a[r=40] ~ ~ ~ 1 1.4"
+        ],
+        "1.70": [
+          "@s bear:despawn"
+        ]
+      }
+    },
+    "animation.bear_mark.seed.life": {
+      "loop": false,
+      "animation_length": 2.2,
+      "timeline": {
+        "1.50": [
+          "/damage @e[r=2.5,family=!bear_boss] 10 magic",
+          "/particle bear:burst_seed ~ ~ ~",
+          "/playsound random.explode @a[r=40] ~ ~ ~ 1.2 0.9"
+        ],
+        "1.95": [
+          "@s bear:despawn"
+        ]
+      }
+    },
+    "animation.bear_mark.wave.life": {
+      "loop": false,
+      "animation_length": 1.6,
+      "timeline": {
+        "0.90": [
+          "/damage @e[r=1.9,family=!bear_boss] 7 magic",
+          "/particle bear:burst_wave ~ ~ ~",
+          "/playsound random.explode @a[r=40] ~ ~ ~ 0.5 1.8"
+        ],
+        "1.35": [
+          "@s bear:despawn"
+        ]
+      }
+    },
+    "animation.bear_mark.nova.life": {
+      "loop": false,
+      "animation_length": 2.2,
+      "timeline": {
+        "1.50": [
+          "/damage @e[r=6,family=!bear_boss] 12 magic",
+          "/particle bear:burst_nova ~ ~ ~",
+          "/playsound random.explode @a[r=40] ~ ~ ~ 2 0.7"
+        ],
+        "1.95": [
+          "@s bear:despawn"
+        ]
+      }
+    },
+    "animation.bear_mark.ring.life": {
+      "loop": false,
+      "animation_length": 2.2,
+      "timeline": {
+        "1.50": [
+          "/damage @e[rm=6,r=11,family=!bear_boss] 12 magic",
+          "/particle bear:burst_ring ~ ~ ~",
+          "/playsound random.explode @a[r=40] ~ ~ ~ 2 0.6"
+        ],
+        "1.95": [
+          "@s bear:despawn"
+        ]
+      }
+    }
+  }
+}

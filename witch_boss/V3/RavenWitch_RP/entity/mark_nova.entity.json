@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bear:mark_nova",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/mark_nova"
+      },
+      "geometry": {
+        "default": "geometry.bear_mark_nova"
+      },
+      "render_controllers": [
+        "controller.render.bear_mark"
+      ],
+      "scripts": {
+        "animate": [
+          "life"
+        ]
+      },
+      "animations": {
+        "life": "animation.bear_mark.nova"
+      }
+    }
+  }
+}

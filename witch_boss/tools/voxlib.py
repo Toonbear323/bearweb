@@ -48,6 +48,23 @@ class Vox:
         self.colU[mask] = (np.broadcast_to(up, self.col.shape) if up is not None else col)[mask]
         self.colD[mask] = (np.broadcast_to(down, self.col.shape) if down is not None else col * 0.8)[mask]
 
+    def split(self, mask):
+        """move the voxels in `mask` into a new volume (a separate joint); both stay closed solids"""
+        o = Vox.__new__(Vox)
+        o.__dict__.update(self.__dict__)
+        o.occ = self.occ & mask
+        o.col, o.colU, o.colD, o.dec = self.col.copy(), self.colU.copy(), self.colD.copy(), self.dec.copy()
+        self.occ = self.occ & ~mask
+        return o
+
+    def eroded(self, n=1):
+        """occupancy shrunk sideways by n voxels (used for the hidden plugs inside joints)"""
+        m = self.occ.copy()
+        for _ in range(n):
+            p = np.pad(m, 1)
+            m = m & p[2:, 1:-1, 1:-1] & p[:-2, 1:-1, 1:-1] & p[1:-1, 1:-1, 2:] & p[1:-1, 1:-1, :-2]
+        return m
+
     def front(self):
         """mask of the first occupied voxel of every (column,row) seen from the front"""
         cum = np.cumsum(self.occ, axis=2)
@@ -149,14 +166,14 @@ class Vox:
             return rgb * s.ao[ctx.face][i, j, k][..., None]
         return f
 
-    def emit(self, bone, decal=None):
+    def emit(self, bone, decal=None, skip=()):
         """add the volume to a mclib Bone as merged boxes; returns the number of cubes"""
         self.bake_ao()
         mat = self.painter(decal)
         n = 0
         tex = int(round(1 / self.s))          # one texel per voxel
         for b in self.boxes():
-            faces = self.exposed(b)
+            faces = [f for f in self.exposed(b) if f not in skip]
             if not faces:
                 continue
             i0, i1, j0, j1, k0, k1 = b
